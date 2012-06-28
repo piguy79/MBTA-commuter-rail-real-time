@@ -30,7 +30,7 @@
     <Spinner
         android:id="@+id/chosenLine"
         android:layout_width="fill_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="48dp"
         android:prompt="@string/line_prompt" />
 
     <LinearLayout

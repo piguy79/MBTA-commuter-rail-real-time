@@ -37,7 +37,6 @@ import android.widget.ArrayAdapter;
 import android.widget.ListView;
 import android.widget.SimpleAdapter;
 import android.widget.Spinner;
-import android.widget.TableLayout;
 import android.widget.TextView;
 
 import com.rails.mbta.commuterrail.model.Flag;
