@@ -53,10 +53,15 @@ public class TrainSelectionView extends Activity {
     private static final String ETA = "ETA: ";
 
     private static final String LAST_UPDATE = "Last update: ";
+    private static final String LAST_UPDATE_RETRIEVING = LAST_UPDATE + "Retrieving...";
     private static final long REAL_TIME_UPDATE_IN_MILLIS = 15000;
     private Route scheduledRoute;
     private Handler realTimeUpdateHandler = new Handler();
     private RealTimeUpdateRunnable realTimeUpdateRunnable;
+
+    private LoadScheduleInformation scheduleLoader;
+
+    private TextView realTimeUpdateStatusTextView;
 
     private int trainDelayLateColor;
     private int trainDelayWarningColor;
@@ -86,12 +91,13 @@ public class TrainSelectionView extends Activity {
 
         Spinner trainSelectionSpinner = (Spinner) findViewById(R.id.trainNumberSpinner);
         final ListView trainScheduleListView = (ListView) findViewById(R.id.trainScheduleListView);
-        final TextView realTimeUpdateStatusTextView = (TextView) findViewById(R.id.realTimeUpdateStatusTextView);
+        realTimeUpdateStatusTextView = (TextView) findViewById(R.id.realTimeUpdateStatusTextView);
         final TextView realTimeUpdateConnectionStatusTextView = (TextView) findViewById(R.id.realTimeUpdateConnectionStatusTextView);
 
         defaultColor = realTimeUpdateStatusTextView.getTextColors().getDefaultColor();
 
-        new LoadScheduleInformation(trainSelectionSpinner, selectedLine).execute("");
+        scheduleLoader = new LoadScheduleInformation(trainSelectionSpinner, selectedLine);
+        scheduleLoader.execute("");
 
         trainSelectionSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
@@ -132,7 +138,7 @@ public class TrainSelectionView extends Activity {
 
                 trainScheduleListView.setAdapter(stopTimeAdapter);
 
-                realTimeUpdateStatusTextView.setText(LAST_UPDATE + "Retrieving...");
+                realTimeUpdateStatusTextView.setText(LAST_UPDATE_RETRIEVING);
                 realTimeUpdateHandler.removeCallbacks(realTimeUpdateRunnable);
                 realTimeUpdateHandler.post(realTimeUpdateRunnable);
             }
@@ -146,6 +152,32 @@ public class TrainSelectionView extends Activity {
         realTimeUpdateRunnable = new RealTimeUpdateRunnable(selectedLine, connectivityManager, trainScheduleListView,
                 trainSelectionSpinner, realTimeUpdateStatusTextView, realTimeUpdateConnectionStatusTextView);
         realTimeUpdateHandler.post(realTimeUpdateRunnable);
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+
+        realTimeUpdateHandler.removeCallbacks(realTimeUpdateRunnable);
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+
+        realTimeUpdateStatusTextView.setText(LAST_UPDATE_RETRIEVING);
+        realTimeUpdateHandler.removeCallbacks(realTimeUpdateRunnable);
+        realTimeUpdateHandler.post(realTimeUpdateRunnable);
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+
+        /*
+         * Attempt to cancel, just in case it is still running.
+         */
+        scheduleLoader.cancel(true);
     }
 
     private class RealTimeUpdateRunnable implements Runnable {
