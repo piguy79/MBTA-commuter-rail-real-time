@@ -8,8 +8,6 @@
 # Java class files
 *.class
 
-.classpath
-.project
 .settings/*
 
 # generated files
