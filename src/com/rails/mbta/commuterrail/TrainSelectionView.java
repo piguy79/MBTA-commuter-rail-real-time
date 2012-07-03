@@ -62,12 +62,16 @@ public class TrainSelectionView extends Activity {
     private LoadScheduleInformation scheduleLoader;
 
     private TextView realTimeUpdateStatusTextView;
+    private Spinner trainSelectionSpinner;
+    private TextView realTimeUpdateConnectionStatusTextView;
+    private ListView trainScheduleListView;
 
     private int trainDelayLateColor;
     private int trainDelayWarningColor;
     private int defaultColor;
 
     private int selectedDirection;
+    private int selectedLine;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -84,15 +88,15 @@ public class TrainSelectionView extends Activity {
         trainDelayWarningColor = getResources().getColor(R.color.train_delay_warning);
 
         Bundle extras = intent.getExtras();
-        final int selectedLine = extras.getInt(MBTACommuterRailActivity.SELECTED_LINE);
+        selectedLine = extras.getInt(MBTACommuterRailActivity.SELECTED_LINE);
         selectedDirection = extras.getInt(MBTACommuterRailActivity.SELECTED_DIRECTION);
 
         setContentView(R.layout.train_selection);
 
-        Spinner trainSelectionSpinner = (Spinner) findViewById(R.id.trainNumberSpinner);
-        final ListView trainScheduleListView = (ListView) findViewById(R.id.trainScheduleListView);
+        trainSelectionSpinner = (Spinner) findViewById(R.id.trainNumberSpinner);
+        trainScheduleListView = (ListView) findViewById(R.id.trainScheduleListView);
         realTimeUpdateStatusTextView = (TextView) findViewById(R.id.realTimeUpdateStatusTextView);
-        final TextView realTimeUpdateConnectionStatusTextView = (TextView) findViewById(R.id.realTimeUpdateConnectionStatusTextView);
+        realTimeUpdateConnectionStatusTextView = (TextView) findViewById(R.id.realTimeUpdateConnectionStatusTextView);
 
         defaultColor = realTimeUpdateStatusTextView.getTextColors().getDefaultColor();
 
@@ -138,36 +142,44 @@ public class TrainSelectionView extends Activity {
 
                 trainScheduleListView.setAdapter(stopTimeAdapter);
 
-                realTimeUpdateStatusTextView.setText(LAST_UPDATE_RETRIEVING);
-                realTimeUpdateHandler.removeCallbacks(realTimeUpdateRunnable);
-                realTimeUpdateHandler.post(realTimeUpdateRunnable);
+                startRealTimeUpdatePosts();
             }
 
             public void onNothingSelected(AdapterView<?> parent) {
 
             }
         });
+    }
 
+    private void startRealTimeUpdatePosts() {
+        stopRealTimeUpdatePosts();
+
+        realTimeUpdateStatusTextView.setText(LAST_UPDATE_RETRIEVING);
         ConnectivityManager connectivityManager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
         realTimeUpdateRunnable = new RealTimeUpdateRunnable(selectedLine, connectivityManager, trainScheduleListView,
                 trainSelectionSpinner, realTimeUpdateStatusTextView, realTimeUpdateConnectionStatusTextView);
         realTimeUpdateHandler.post(realTimeUpdateRunnable);
     }
 
+    private void stopRealTimeUpdatePosts() {
+        if (realTimeUpdateRunnable != null) {
+            realTimeUpdateRunnable.kill();
+        }
+        realTimeUpdateHandler.removeCallbacksAndMessages(null);
+    }
+
     @Override
     protected void onPause() {
         super.onPause();
 
-        realTimeUpdateHandler.removeCallbacks(realTimeUpdateRunnable);
+        stopRealTimeUpdatePosts();
     }
 
     @Override
     protected void onResume() {
         super.onResume();
 
-        realTimeUpdateStatusTextView.setText(LAST_UPDATE_RETRIEVING);
-        realTimeUpdateHandler.removeCallbacks(realTimeUpdateRunnable);
-        realTimeUpdateHandler.post(realTimeUpdateRunnable);
+        startRealTimeUpdatePosts();
     }
 
     @Override
@@ -187,6 +199,7 @@ public class TrainSelectionView extends Activity {
         private Spinner trainSelectionSpinner;
         private TextView realTimeUpdateStatusTextView;
         private TextView realTimeUpdateConnectionStatusTextView;
+        private boolean shouldKill = false;
 
         public RealTimeUpdateRunnable(int selectedLine, ConnectivityManager connectivityManager,
                 ListView trainScheduleListView, Spinner trainSelectionSpinner, TextView realTimeUpdateStatusTextView,
@@ -199,10 +212,17 @@ public class TrainSelectionView extends Activity {
             this.realTimeUpdateConnectionStatusTextView = realTimeUpdateConnectionStatusTextView;
         }
 
+        public void kill() {
+            this.shouldKill = true;
+        }
+
         public void run() {
-            new LoadLineInformation(connectivityManager, trainScheduleListView, trainSelectionSpinner,
-                    realTimeUpdateStatusTextView, realTimeUpdateConnectionStatusTextView).execute(Integer
-                    .toString(selectedLine));
+            if (!shouldKill) {
+                new LoadLineInformation(connectivityManager, trainScheduleListView, trainSelectionSpinner,
+                        realTimeUpdateStatusTextView, realTimeUpdateConnectionStatusTextView, this).execute(Integer
+                        .toString(selectedLine));
+            }
+
         }
     }
 
@@ -279,15 +299,18 @@ public class TrainSelectionView extends Activity {
         private Spinner trainSelectionSpinner;
         private TextView realTimeUpdateStatusTextView;
         private TextView realTimeUpdateConnectionStatusTextView;
+        private RealTimeUpdateRunnable realTimeUpdateRunnable;
 
         public LoadLineInformation(ConnectivityManager connectivityManager, ListView trainScheduleListView,
                 Spinner trainSelectionSpinner, TextView realTimeUpdateStatusTextView,
-                TextView realTimeUpdateConnectionStatusTextView) {
+                TextView realTimeUpdateConnectionStatusTextView, RealTimeUpdateRunnable realTimeUpdateRunnable) {
             this.connectivityManager = connectivityManager;
             this.trainScheduleListView = trainScheduleListView;
             this.trainSelectionSpinner = trainSelectionSpinner;
             this.realTimeUpdateStatusTextView = realTimeUpdateStatusTextView;
             this.realTimeUpdateConnectionStatusTextView = realTimeUpdateConnectionStatusTextView;
+            this.realTimeUpdateRunnable = realTimeUpdateRunnable;
+            
         }
 
         @Override
