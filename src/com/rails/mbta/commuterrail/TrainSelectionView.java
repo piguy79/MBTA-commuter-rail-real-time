@@ -31,7 +31,9 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
 import android.util.Log;
+import android.view.LayoutInflater;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
@@ -282,7 +284,41 @@ public class TrainSelectionView extends Activity {
             Trip[] trips = result.trips.toArray(new Trip[result.trips.size()]);
 
             ArrayAdapter<Trip> tripsAdapter = new ArrayAdapter<Trip>(TrainSelectionView.this,
-                    R.layout.train_selection_item, R.id.chosenLineText, trips);
+                    R.layout.train_schedule_spinner, R.id.chosenLineText, trips) {
+                @Override
+                public View getView(int position, View convertView, ViewGroup parent) {
+                    View view;
+                    TextView text;
+
+                    if (convertView == null) {
+                        LayoutInflater mInflater = (LayoutInflater) TrainSelectionView.this
+                                .getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+                        view = mInflater.inflate(R.layout.train_schedule_spinner, parent, false);
+                    } else {
+                        view = convertView;
+                    }
+
+                    TextView spinnerDepartureTimeTextView = (TextView) view.findViewById(R.id.spinnerDepartureTime);
+                    TextView spinnerTripInfoTextView = (TextView) view.findViewById(R.id.spinnerTripInfo);
+
+                    Object item = getItem(position);
+                    if (item instanceof Trip) {
+                        Trip trip = (Trip) item;
+                        String stopTime = "";
+                        if (!trip.stopTimes.isEmpty()) {
+                            stopTime = Common.TIME_FORMATTER.print(trip.stopTimes.get(0).departureTime);
+                        }
+                        spinnerDepartureTimeTextView.setText(stopTime);
+                        spinnerTripInfoTextView.setText(trip.tripHeadsign);
+                    } else {
+                        spinnerDepartureTimeTextView.setText("");
+                        spinnerTripInfoTextView.setText("");
+                    }
+
+                    return view;
+                }
+            };
+            tripsAdapter.setDropDownViewResource(R.layout.train_selection_item);
             trainSelection.setAdapter(tripsAdapter);
 
             progressDialog.dismiss();
@@ -310,7 +346,7 @@ public class TrainSelectionView extends Activity {
             this.realTimeUpdateStatusTextView = realTimeUpdateStatusTextView;
             this.realTimeUpdateConnectionStatusTextView = realTimeUpdateConnectionStatusTextView;
             this.realTimeUpdateRunnable = realTimeUpdateRunnable;
-            
+
         }
 
         @Override

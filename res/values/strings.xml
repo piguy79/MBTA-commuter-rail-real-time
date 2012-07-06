@@ -5,5 +5,7 @@
     <string name="line_prompt">Choose a line:</string>
     <color name="train_delay_warning">#ffd700</color>
     <color name="train_delay_late">#ff0000</color>
+    <color name="toolbar_background_color">#aaaaaa</color>
+    <color name="toolbar_background_spacer_color">#777777</color>
 
 </resources>
