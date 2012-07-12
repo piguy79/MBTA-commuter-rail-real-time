@@ -7,5 +7,6 @@
     <color name="train_delay_late">#ff0000</color>
     <color name="toolbar_background_color">#aaaaaa</color>
     <color name="toolbar_background_spacer_color">#777777</color>
+    <color name="toolbar_text_color">#000000</color>
 
 </resources>

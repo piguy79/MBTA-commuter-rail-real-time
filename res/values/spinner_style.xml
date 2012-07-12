@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:android="http://schemas.android.com/apk/res/android">
+    <style name="FlatSpinner" parent="">
+        <item name="android:clickable">true</item>
+    </style>
+    <style name="FlatSpinnerTextView">
+        <item name="android:paddingLeft">5dp</item>
+        <item name="android:paddingRight">5dp</item>
+        <item name="android:textColor">@color/toolbar_text_color</item>
+        <item name="android:gravity">center_vertical</item>
+    </style>
+    
+</resources>

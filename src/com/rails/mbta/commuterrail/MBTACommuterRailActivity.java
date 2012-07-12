@@ -35,12 +35,13 @@ public class MBTACommuterRailActivity extends Activity {
         ta.setTextColor(mbtaPurpleId);
         ta.setGravity(Gravity.LEFT);
 
-        final Spinner chosenLine = (Spinner) findViewById(R.id.chosenLine);
-        ArrayAdapter<Line> commuterRailLinesAdapter = new ArrayAdapter<Line>(this, R.layout.train_selection_item,
+        final Spinner chosenLineSpinner = (Spinner) findViewById(R.id.chosenLine);
+        ArrayAdapter<Line> commuterRailLinesAdapter = new ArrayAdapter<Line>(this, R.layout.train_selection_spinner,
                 R.id.chosenLineText, Line.values());
-        chosenLine.setAdapter(commuterRailLinesAdapter);
+        commuterRailLinesAdapter.setDropDownViewResource(R.layout.train_selection_item);
+        chosenLineSpinner.setAdapter(commuterRailLinesAdapter);
 
-        DirectionButtonOnClickListener listener = new DirectionButtonOnClickListener(chosenLine);
+        DirectionButtonOnClickListener listener = new DirectionButtonOnClickListener(chosenLineSpinner);
         Button inboundButton = (Button) findViewById(R.id.inboundButton);
         Button outboundButton = (Button) findViewById(R.id.outboundButton);
         inboundButton.setOnClickListener(listener);

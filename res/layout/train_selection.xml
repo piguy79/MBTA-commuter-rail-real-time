@@ -7,29 +7,33 @@
     <TableLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="@color/toolbar_background_spacer_color" 
-        android:stretchColumns="0">
-
+        android:background="@color/toolbar_background_spacer_color"
+        android:stretchColumns="0" >
         <TableRow
             android:id="@+id/tableRow1"
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:background="@color/toolbar_background_color">
-
+            android:layout_height="wrap_content" >
             <Spinner
+                style="@style/FlatSpinner"
                 android:id="@+id/trainNumberSpinner"
                 android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_gravity="center_vertical" />
+                android:layout_height="fill_parent"
+                android:layout_gravity="center_vertical"
+                android:layout_marginLeft="1dp"
+                android:layout_marginTop="1dp"
+                android:layout_marginBottom="1dp" />
 
             <ImageView
                 android:id="@+id/imageView1"
-                android:layout_width="50dip"
-                android:layout_height="wrap_content"
+                android:scaleType="center"
+                android:layout_width="50dp"
+                android:layout_height="fill_parent"
                 android:layout_gravity="center_vertical"
+                android:layout_margin="1dp"
+                android:background="@color/toolbar_background_color"
                 android:contentDescription="Settings"
+                android:cropToPadding="true"
                 android:src="@drawable/action_settings" />
-
         </TableRow>
     </TableLayout>
 
