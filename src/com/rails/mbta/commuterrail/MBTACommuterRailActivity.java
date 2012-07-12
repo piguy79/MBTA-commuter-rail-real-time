@@ -1,9 +1,18 @@
 package com.rails.mbta.commuterrail;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.ObjectInputStream;
+import java.util.ListIterator;
+
+import org.joda.time.LocalDate;
+
 import android.app.Activity;
-import android.content.Context;
+import android.app.ProgressDialog;
 import android.content.Intent;
+import android.os.AsyncTask;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.Gravity;
 import android.view.View;
 import android.widget.ArrayAdapter;
@@ -12,10 +21,12 @@ import android.widget.Spinner;
 import android.widget.TextView;
 
 import com.rails.mbta.commuterrail.model.Line;
+import com.rails.mbta.commuterrail.schedule.Route;
+import com.rails.mbta.commuterrail.schedule.Trip;
 
 public class MBTACommuterRailActivity extends Activity {
     public static final String SELECTED_LINE = "SELECTED_LINE";
-    public static final String SELECTED_DIRECTION = "SELECTED_DIRECTION";
+    public static final String SELECTED_TRIPS = "SELECTED_TRIPS";
     public static final int OUTBOUND = 0;
     public static final int INBOUND = 1;
 
@@ -41,36 +52,76 @@ public class MBTACommuterRailActivity extends Activity {
         commuterRailLinesAdapter.setDropDownViewResource(R.layout.train_selection_item);
         chosenLineSpinner.setAdapter(commuterRailLinesAdapter);
 
-        DirectionButtonOnClickListener listener = new DirectionButtonOnClickListener(chosenLineSpinner);
-        Button inboundButton = (Button) findViewById(R.id.inboundButton);
-        Button outboundButton = (Button) findViewById(R.id.outboundButton);
-        inboundButton.setOnClickListener(listener);
-        outboundButton.setOnClickListener(listener);
+        Button goButton = (Button) findViewById(R.id.goButton);
+        goButton.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                LoadScheduleInformation scheduleLoader = new LoadScheduleInformation(MBTACommuterRailActivity.this,
+                        ((Line) chosenLineSpinner.getSelectedItem()).getLineNumber());
+                scheduleLoader.execute("");
+            }
+        });
     }
 
-    private static class DirectionButtonOnClickListener implements View.OnClickListener {
-        private Spinner chosenLine;
+    private static class LoadScheduleInformation extends AsyncTask<String, Route, Route> {
+        private ProgressDialog progressDialog;
+        private int selectedLine;
+        private MBTACommuterRailActivity activity;
 
-        public DirectionButtonOnClickListener(Spinner chosenLine) {
-            this.chosenLine = chosenLine;
+        public LoadScheduleInformation(MBTACommuterRailActivity activity, int selectedLine) {
+            this.selectedLine = selectedLine;
+            this.activity = activity;
         }
 
-        public void onClick(View v) {
-            int direction = OUTBOUND;
-            if (v.getId() == R.id.inboundButton) {
-                direction = INBOUND;
+        @Override
+        protected void onPreExecute() {
+            progressDialog = ProgressDialog.show(activity, "Loading", "Loading schedule information");
+        }
+
+        @Override
+        protected Route doInBackground(String... params) {
+            try {
+                InputStream is = activity.getAssets().open("CR-" + selectedLine + "-data.ser");
+                ObjectInputStream ois = new ObjectInputStream(is);
+
+                return (Route) ois.readObject();
+            } catch (IOException e) {
+                Log.wtf("error", "error", e);
+            } catch (ClassNotFoundException e) {
+                Log.wtf("error", "error", e);
             }
-            Context context = v.getContext();
-            Intent intent = new Intent(context, TrainSelectionView.class);
+            return null;
+        }
+
+        @Override
+        protected void onPostExecute(Route result) {
+            /*
+             * Limit trips to only those that match today.
+             */
+            LocalDate now = new LocalDate();
+            int dayOfWeek = Integer.parseInt(Common.TODAY_FORMATTER.print(now));
+            for (ListIterator<Trip> iter = result.trips.listIterator(); iter.hasNext();) {
+                Trip trip = iter.next();
+                if (!trip.service.serviceDays[dayOfWeek]) {
+                    iter.remove();
+                    continue;
+                }
+                if (trip.service.startDate.compareTo(now) > 0 || trip.service.endDate.compareTo(now) < 0) {
+                    iter.remove();
+                    continue;
+                }
+            }
+
+            Common.trips = result.trips.toArray(new Trip[result.trips.size()]);
+
+            Intent intent = new Intent(activity, TrainSelectionView.class);
 
             Bundle extras = new Bundle();
-            extras.putInt(SELECTED_LINE, Line.valueOfName(chosenLine.getSelectedItem().toString()).getLineNumber());
-            extras.putInt(SELECTED_DIRECTION, direction);
+            extras.putInt(SELECTED_LINE, selectedLine);
             intent.putExtras(extras);
 
-            context.startActivity(intent);
+            progressDialog.dismiss();
 
+            activity.startActivity(intent);
         }
-
     }
 }

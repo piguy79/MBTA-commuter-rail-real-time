@@ -27,34 +27,26 @@
             android:textSize="40dp" />
     </LinearLayout>
 
-    <Spinner
-        style="@style/FlatSpinner"
-        android:id="@+id/chosenLine"
-        android:layout_width="fill_parent"
-        android:layout_height="45dp"
-        android:layout_marginTop="3dp"
-        android:layout_marginBottom="3dp"
-        android:prompt="@string/line_prompt" />
-
     <LinearLayout
         android:layout_width="fill_parent"
-        android:layout_height="wrap_content" >
+        android:layout_height="50dp" >
+        <Spinner
+            android:id="@+id/chosenLine"
+            style="@style/FlatSpinner"
+            android:layout_width="0dp"
+            android:layout_weight="2"
+            android:layout_height="fill_parent"
+            android:layout_marginBottom="3dp"
+            android:layout_marginTop="3dp"
+            android:prompt="@string/line_prompt" />
 
         <Button
-            android:id="@+id/inboundButton"
-            android:layout_width="wrap_content"
-            android:layout_height="match_parent"
-            android:layout_weight="1"
-            android:layout_marginLeft="0dp"
-            android:text="Inbound" />
-
-        <Button
-            android:id="@+id/outboundButton"
-            android:layout_width="wrap_content"
-            android:layout_height="match_parent"
-            android:layout_weight="1"
-            android:text="Outbound" />
-
+            android:id="@+id/goButton"
+            android:layout_width="60dp"
+            android:layout_height="fill_parent"
+            android:layout_marginBottom="3dp"
+            android:layout_marginTop="3dp"
+            android:text="Go" />
     </LinearLayout>
 
     <ImageView

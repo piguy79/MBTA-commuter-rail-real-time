@@ -1,9 +1,7 @@
 package com.rails.mbta.commuterrail;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.ObjectInputStream;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -15,14 +13,12 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
 
-import org.joda.time.LocalDate;
 import org.joda.time.LocalTime;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import android.app.Activity;
-import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.Intent;
 import android.net.ConnectivityManager;
@@ -43,7 +39,6 @@ import android.widget.TextView;
 
 import com.rails.mbta.commuterrail.model.Flag;
 import com.rails.mbta.commuterrail.model.TripStop;
-import com.rails.mbta.commuterrail.schedule.Route;
 import com.rails.mbta.commuterrail.schedule.StopTime;
 import com.rails.mbta.commuterrail.schedule.Trip;
 
@@ -57,11 +52,8 @@ public class TrainSelectionView extends Activity {
     private static final String LAST_UPDATE = "Last update: ";
     private static final String LAST_UPDATE_RETRIEVING = LAST_UPDATE + "Retrieving...";
     private static final long REAL_TIME_UPDATE_IN_MILLIS = 15000;
-    private Route scheduledRoute;
     private Handler realTimeUpdateHandler = new Handler();
     private RealTimeUpdateRunnable realTimeUpdateRunnable;
-
-    private LoadScheduleInformation scheduleLoader;
 
     private TextView realTimeUpdateStatusTextView;
     private Spinner trainSelectionSpinner;
@@ -74,6 +66,7 @@ public class TrainSelectionView extends Activity {
 
     private int selectedDirection;
     private int selectedLine;
+    private Trip[] trips;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -91,8 +84,7 @@ public class TrainSelectionView extends Activity {
 
         Bundle extras = intent.getExtras();
         selectedLine = extras.getInt(MBTACommuterRailActivity.SELECTED_LINE);
-        selectedDirection = extras.getInt(MBTACommuterRailActivity.SELECTED_DIRECTION);
-
+        trips = Common.trips;
         setContentView(R.layout.train_selection);
 
         trainSelectionSpinner = (Spinner) findViewById(R.id.trainNumberSpinner);
@@ -102,9 +94,45 @@ public class TrainSelectionView extends Activity {
 
         defaultColor = realTimeUpdateStatusTextView.getTextColors().getDefaultColor();
 
-        scheduleLoader = new LoadScheduleInformation(trainSelectionSpinner, selectedLine);
-        scheduleLoader.execute("");
+        ArrayAdapter<Trip> tripsAdapter = new ArrayAdapter<Trip>(TrainSelectionView.this,
+                R.layout.train_schedule_spinner, R.id.chosenLineText, trips) {
+            @Override
+            public View getView(int position, View convertView, ViewGroup parent) {
+                View view;
+                TextView text;
 
+                if (convertView == null) {
+                    LayoutInflater mInflater = (LayoutInflater) TrainSelectionView.this
+                            .getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+                    view = mInflater.inflate(R.layout.train_schedule_spinner, parent, false);
+                } else {
+                    view = convertView;
+                }
+
+                TextView spinnerDepartureTimeTextView = (TextView) view.findViewById(R.id.spinnerDepartureTime);
+                TextView spinnerTripInfoTextView = (TextView) view.findViewById(R.id.spinnerTripInfo);
+
+                Object item = getItem(position);
+                if (item instanceof Trip) {
+                    Trip trip = (Trip) item;
+                    String stopTime = "";
+                    if (!trip.stopTimes.isEmpty()) {
+                        stopTime = Common.TIME_FORMATTER.print(trip.stopTimes.get(0).departureTime);
+                    }
+                    spinnerDepartureTimeTextView.setText(stopTime);
+                    spinnerTripInfoTextView.setText(trip.tripHeadsign);
+                } else {
+                    spinnerDepartureTimeTextView.setText("");
+                    spinnerTripInfoTextView.setText("");
+                }
+
+                return view;
+            }
+        };
+        tripsAdapter.setDropDownViewResource(R.layout.train_selection_item);
+        trainSelectionSpinner.setAdapter(tripsAdapter);
+        
+        
         trainSelectionSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
                 Spinner spinner = (Spinner) parent;
@@ -187,11 +215,6 @@ public class TrainSelectionView extends Activity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
-
-        /*
-         * Attempt to cancel, just in case it is still running.
-         */
-        scheduleLoader.cancel(true);
     }
 
     private class RealTimeUpdateRunnable implements Runnable {
@@ -228,102 +251,7 @@ public class TrainSelectionView extends Activity {
         }
     }
 
-    private class LoadScheduleInformation extends AsyncTask<String, Route, Route> {
-        private ProgressDialog progressDialog;
-        private Spinner trainSelection;
-        private int selectedLine;
-
-        public LoadScheduleInformation(Spinner trainSelection, int selectedLine) {
-            this.trainSelection = trainSelection;
-            this.selectedLine = selectedLine;
-        }
-
-        @Override
-        protected void onPreExecute() {
-            progressDialog = ProgressDialog.show(TrainSelectionView.this, "Loading", "Loading schedule information");
-        }
-
-        @Override
-        protected Route doInBackground(String... params) {
-            try {
-                InputStream is = getAssets().open("CR-" + selectedLine + "-data.ser");
-                ObjectInputStream ois = new ObjectInputStream(is);
-
-                TrainSelectionView.this.scheduledRoute = (Route) ois.readObject();
-            } catch (IOException e) {
-                Log.wtf("error", "error", e);
-            } catch (ClassNotFoundException e) {
-                Log.wtf("error", "error", e);
-            }
-            return TrainSelectionView.this.scheduledRoute;
-        }
-
-        @Override
-        protected void onPostExecute(Route result) {
-            /*
-             * Limit trips to only those that match today.
-             */
-            LocalDate now = new LocalDate();
-            int dayOfWeek = Integer.parseInt(Common.TODAY_FORMATTER.print(now));
-            for (ListIterator<Trip> iter = result.trips.listIterator(); iter.hasNext();) {
-                Trip trip = iter.next();
-                if (!trip.service.serviceDays[dayOfWeek]) {
-                    iter.remove();
-                    continue;
-                }
-                if (trip.service.startDate.compareTo(now) > 0 || trip.service.endDate.compareTo(now) < 0) {
-                    iter.remove();
-                    continue;
-                }
-                if (trip.directionId != TrainSelectionView.this.selectedDirection) {
-                    iter.remove();
-                    continue;
-                }
-            }
-
-            Trip[] trips = result.trips.toArray(new Trip[result.trips.size()]);
-
-            ArrayAdapter<Trip> tripsAdapter = new ArrayAdapter<Trip>(TrainSelectionView.this,
-                    R.layout.train_schedule_spinner, R.id.chosenLineText, trips) {
-                @Override
-                public View getView(int position, View convertView, ViewGroup parent) {
-                    View view;
-                    TextView text;
-
-                    if (convertView == null) {
-                        LayoutInflater mInflater = (LayoutInflater) TrainSelectionView.this
-                                .getSystemService(Context.LAYOUT_INFLATER_SERVICE);
-                        view = mInflater.inflate(R.layout.train_schedule_spinner, parent, false);
-                    } else {
-                        view = convertView;
-                    }
-
-                    TextView spinnerDepartureTimeTextView = (TextView) view.findViewById(R.id.spinnerDepartureTime);
-                    TextView spinnerTripInfoTextView = (TextView) view.findViewById(R.id.spinnerTripInfo);
-
-                    Object item = getItem(position);
-                    if (item instanceof Trip) {
-                        Trip trip = (Trip) item;
-                        String stopTime = "";
-                        if (!trip.stopTimes.isEmpty()) {
-                            stopTime = Common.TIME_FORMATTER.print(trip.stopTimes.get(0).departureTime);
-                        }
-                        spinnerDepartureTimeTextView.setText(stopTime);
-                        spinnerTripInfoTextView.setText(trip.tripHeadsign);
-                    } else {
-                        spinnerDepartureTimeTextView.setText("");
-                        spinnerTripInfoTextView.setText("");
-                    }
-
-                    return view;
-                }
-            };
-            tripsAdapter.setDropDownViewResource(R.layout.train_selection_item);
-            trainSelection.setAdapter(tripsAdapter);
-
-            progressDialog.dismiss();
-        }
-    }
+    
 
     private class LoadLineInformation extends AsyncTask<String, Void, List<TripStop>> {
 
