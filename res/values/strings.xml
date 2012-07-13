@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">MBTA Commuter Rail</string>
+    <string name="app_name">commuTe</string>
     <color name="mbtaPurple">#8B118F</color>
     <string name="line_prompt">Choose a line:</string>
     <color name="train_delay_warning">#ffd700</color>
