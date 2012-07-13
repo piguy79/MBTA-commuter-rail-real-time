@@ -19,8 +19,11 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.AsyncTask;
@@ -48,6 +51,8 @@ public class TrainSelectionView extends Activity {
     private static final String ACTUAL_TIME = "actualTime";
     private static final String ACTUAL_TIME_COLOR_ID = "actualTimeColorId";
     private static final String ETA = "ETA: ";
+    private static final String REAL_TIME_WARNING_SHOWN = "realTimeWarningShown";
+    private static final String PREF_STORAGE_NAME = "trainSelectionPrefs";
 
     private static final String LAST_UPDATE = "Last update: ";
     private static final String LAST_UPDATE_RETRIEVING = LAST_UPDATE + "Retrieving...";
@@ -99,7 +104,6 @@ public class TrainSelectionView extends Activity {
             @Override
             public View getView(int position, View convertView, ViewGroup parent) {
                 View view;
-                TextView text;
 
                 if (convertView == null) {
                     LayoutInflater mInflater = (LayoutInflater) TrainSelectionView.this
@@ -131,8 +135,7 @@ public class TrainSelectionView extends Activity {
         };
         tripsAdapter.setDropDownViewResource(R.layout.train_selection_item);
         trainSelectionSpinner.setAdapter(tripsAdapter);
-        
-        
+
         trainSelectionSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
                 Spinner spinner = (Spinner) parent;
@@ -200,21 +203,35 @@ public class TrainSelectionView extends Activity {
 
     @Override
     protected void onPause() {
-        super.onPause();
-
         stopRealTimeUpdatePosts();
+
+        SharedPreferences.Editor prefEditor = getSharedPreferences(PREF_STORAGE_NAME, 0).edit();
+        prefEditor.putBoolean(REAL_TIME_WARNING_SHOWN, true);
+        prefEditor.commit();
+
+        super.onPause();
     }
 
     @Override
     protected void onResume() {
-        super.onResume();
+        SharedPreferences prefs = getSharedPreferences(PREF_STORAGE_NAME, 0);
+        boolean realTimeWarningShown = prefs.getBoolean(REAL_TIME_WARNING_SHOWN, false);
+
+        if (!realTimeWarningShown) {
+            AlertDialog.Builder builder = new AlertDialog.Builder(this);
+            builder.setMessage(
+                    "Warning: Real-time commuter rail information comes directly from the MBTA and is still in beta form. Data may be incorrect or missing.")
+                    .setCancelable(false).setPositiveButton("Continue", new DialogInterface.OnClickListener() {
+                        public void onClick(DialogInterface dialog, int id) {
+                        }
+                    });
+            AlertDialog alert = builder.create();
+            alert.show();
+        }
 
         startRealTimeUpdatePosts();
-    }
 
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
+        super.onResume();
     }
 
     private class RealTimeUpdateRunnable implements Runnable {
@@ -250,8 +267,6 @@ public class TrainSelectionView extends Activity {
 
         }
     }
-
-    
 
     private class LoadLineInformation extends AsyncTask<String, Void, List<TripStop>> {
 

@@ -26,7 +26,7 @@
                 android:layout_marginLeft="1dp"
                 android:layout_marginTop="1dp" />
 
-            <ImageView
+            <!--<ImageView
                 android:id="@+id/imageView1"
                 android:layout_width="50dp"
                 android:layout_height="fill_parent"
@@ -37,6 +37,7 @@
                 android:cropToPadding="true"
                 android:scaleType="center"
                 android:src="@drawable/action_settings" />
+            -->
         </TableRow>
     </TableLayout>
 
@@ -74,7 +75,7 @@
         ads:adSize="BANNER"
         ads:adUnitId="a150001d5354ad2"
         ads:loadAdOnCreate="true"
-        ads:testDevices="TEST_EMULATOR, 256691432506362455" >
+        ads:testDevices="TEST_EMULATOR, 36263DCA5A61F683DEFACFC0B3A2D62E" >
     </com.google.ads.AdView>
 
 </LinearLayout>
