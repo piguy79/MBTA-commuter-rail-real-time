@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:ads="http://schemas.android.com/apk/lib/com.google.ads"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical" >
@@ -9,23 +10,24 @@
         android:layout_height="wrap_content"
         android:background="@color/toolbar_background_spacer_color"
         android:stretchColumns="0" >
+
         <TableRow
             android:id="@+id/tableRow1"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content" >
+
             <Spinner
-                style="@style/FlatSpinner"
                 android:id="@+id/trainNumberSpinner"
+                style="@style/FlatSpinner"
                 android:layout_width="0dp"
                 android:layout_height="fill_parent"
                 android:layout_gravity="center_vertical"
+                android:layout_marginBottom="1dp"
                 android:layout_marginLeft="1dp"
-                android:layout_marginTop="1dp"
-                android:layout_marginBottom="1dp" />
+                android:layout_marginTop="1dp" />
 
             <ImageView
                 android:id="@+id/imageView1"
-                android:scaleType="center"
                 android:layout_width="50dp"
                 android:layout_height="fill_parent"
                 android:layout_gravity="center_vertical"
@@ -33,6 +35,7 @@
                 android:background="@color/toolbar_background_color"
                 android:contentDescription="Settings"
                 android:cropToPadding="true"
+                android:scaleType="center"
                 android:src="@drawable/action_settings" />
         </TableRow>
     </TableLayout>
@@ -60,7 +63,18 @@
     <ListView
         android:id="@+id/trainScheduleListView"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content" >
+        android:layout_height="0dp"
+        android:layout_weight="3" >
     </ListView>
+
+    <com.google.ads.AdView
+        android:id="@+id/adView"
+        android:layout_width="fill_parent"
+        android:layout_height="60dp"
+        ads:adSize="BANNER"
+        ads:adUnitId="a150001d5354ad2"
+        ads:loadAdOnCreate="true"
+        ads:testDevices="TEST_EMULATOR, 256691432506362455" >
+    </com.google.ads.AdView>
 
 </LinearLayout>
