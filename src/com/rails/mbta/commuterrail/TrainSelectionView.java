@@ -30,6 +30,7 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
 import android.util.Log;
+import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -244,6 +245,16 @@ public class TrainSelectionView extends Activity {
         startRealTimeUpdatePosts();
 
         super.onResume();
+    }
+
+    public boolean onKeyDown(int keyCode, KeyEvent event) {
+        if (keyCode == KeyEvent.KEYCODE_BACK && event.getRepeatCount() == 0) {
+            SharedPreferences.Editor prefEditor = getSharedPreferences(MBTACommuterRailActivity.MAIN_PREF_STORAGE_NAME,
+                    0).edit();
+            prefEditor.remove(MBTACommuterRailActivity.PREFERRED_LINE);
+            prefEditor.commit();
+        }
+        return super.onKeyDown(keyCode, event);
     }
 
     private class RealTimeUpdateRunnable implements Runnable {

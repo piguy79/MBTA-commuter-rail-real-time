@@ -10,6 +10,7 @@ import org.joda.time.LocalDate;
 import android.app.Activity;
 import android.app.ProgressDialog;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.util.Log;
@@ -17,6 +18,7 @@ import android.view.Gravity;
 import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.CheckBox;
 import android.widget.Spinner;
 import android.widget.TextView;
 
@@ -29,6 +31,9 @@ public class MBTACommuterRailActivity extends Activity {
     public static final String SELECTED_TRIPS = "SELECTED_TRIPS";
     public static final int OUTBOUND = 0;
     public static final int INBOUND = 1;
+
+    public static final String MAIN_PREF_STORAGE_NAME = "mbtaCommuterRailPrefs";
+    public static final String PREFERRED_LINE = "preferredLine";
 
     /** Called when the activity is first created. */
     @Override
@@ -52,14 +57,32 @@ public class MBTACommuterRailActivity extends Activity {
         commuterRailLinesAdapter.setDropDownViewResource(R.layout.train_selection_item);
         chosenLineSpinner.setAdapter(commuterRailLinesAdapter);
 
+        final CheckBox rememberCheckbox = (CheckBox) findViewById(R.id.rememberMySelectionCheckbox);
         Button goButton = (Button) findViewById(R.id.goButton);
         goButton.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
+                int lineNumber = ((Line) chosenLineSpinner.getSelectedItem()).getLineNumber();
+                SharedPreferences.Editor prefEditor = getSharedPreferences(MAIN_PREF_STORAGE_NAME, 0).edit();
+                if (rememberCheckbox.isChecked()) {
+                    prefEditor.putInt(PREFERRED_LINE, lineNumber);
+                    prefEditor.commit();
+                } else {
+                    prefEditor.remove(PREFERRED_LINE);
+                    prefEditor.commit();
+                }
                 LoadScheduleInformation scheduleLoader = new LoadScheduleInformation(MBTACommuterRailActivity.this,
-                        ((Line) chosenLineSpinner.getSelectedItem()).getLineNumber());
+                        lineNumber);
                 scheduleLoader.execute("");
             }
         });
+
+        SharedPreferences prefs = getSharedPreferences(MAIN_PREF_STORAGE_NAME, 0);
+        if (prefs.contains(PREFERRED_LINE)) {
+            int lineNumber = prefs.getInt(PREFERRED_LINE, 0);
+            LoadScheduleInformation scheduleLoader = new LoadScheduleInformation(MBTACommuterRailActivity.this,
+                    lineNumber);
+            scheduleLoader.execute("");
+        }
     }
 
     private static class LoadScheduleInformation extends AsyncTask<String, Route, Route> {

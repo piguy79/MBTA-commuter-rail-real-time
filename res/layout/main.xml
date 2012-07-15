@@ -30,14 +30,15 @@
     <LinearLayout
         android:layout_width="fill_parent"
         android:layout_height="50dp" >
+
         <Spinner
             android:id="@+id/chosenLine"
             style="@style/FlatSpinner"
             android:layout_width="0dp"
-            android:layout_weight="2"
             android:layout_height="fill_parent"
             android:layout_marginBottom="3dp"
             android:layout_marginTop="3dp"
+            android:layout_weight="2"
             android:prompt="@string/line_prompt" />
 
         <Button
@@ -47,6 +48,25 @@
             android:layout_marginBottom="3dp"
             android:layout_marginTop="3dp"
             android:text="Go" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="fill_parent"
+        android:layout_height="40dp" >
+
+        <CheckBox
+            android:id="@+id/rememberMySelectionCheckbox"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_vertical"
+            android:checked="true"  />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_vertical"
+            android:layout_weight="2"
+            android:text="Remember my line" />
     </LinearLayout>
 
     <ImageView
