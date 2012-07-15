@@ -229,6 +229,18 @@ public class TrainSelectionView extends Activity {
             alert.show();
         }
 
+        if (trips.length == 0) {
+            AlertDialog.Builder builder = new AlertDialog.Builder(this);
+            builder.setMessage("No scheduled trips for today").setCancelable(false)
+                    .setPositiveButton("Go back", new DialogInterface.OnClickListener() {
+                        public void onClick(DialogInterface dialog, int id) {
+                            TrainSelectionView.this.finish();
+                        }
+                    });
+            AlertDialog alert = builder.create();
+            alert.show();
+        }
+
         startRealTimeUpdatePosts();
 
         super.onResume();
