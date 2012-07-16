@@ -79,7 +79,7 @@ public class TrainSelectionView extends Activity {
         super.onCreate(savedInstanceState);
 
         Intent intent = getIntent();
-        if (intent == null || intent.getExtras() == null) {
+        if (intent == null || intent.getExtras() == null || Common.trips == null) {
             Intent lineSelectionPageIntent = new Intent(this, MBTACommuterRailActivity.class);
             startActivity(lineSelectionPageIntent);
             return;

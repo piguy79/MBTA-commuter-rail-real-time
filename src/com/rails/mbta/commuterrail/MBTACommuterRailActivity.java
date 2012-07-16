@@ -79,6 +79,14 @@ public class MBTACommuterRailActivity extends Activity {
         SharedPreferences prefs = getSharedPreferences(MAIN_PREF_STORAGE_NAME, 0);
         if (prefs.contains(PREFERRED_LINE)) {
             int lineNumber = prefs.getInt(PREFERRED_LINE, 0);
+
+            for (int i = 0; i < commuterRailLinesAdapter.getCount(); ++i) {
+                if (commuterRailLinesAdapter.getItem(i).getLineNumber() == lineNumber) {
+                    chosenLineSpinner.setSelection(i);
+                    break;
+                }
+            }
+
             LoadScheduleInformation scheduleLoader = new LoadScheduleInformation(MBTACommuterRailActivity.this,
                     lineNumber);
             scheduleLoader.execute("");
