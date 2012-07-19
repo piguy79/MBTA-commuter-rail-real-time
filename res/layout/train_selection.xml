@@ -21,23 +21,25 @@
                 style="@style/FlatSpinner"
                 android:layout_width="0dp"
                 android:layout_height="fill_parent"
-                android:layout_gravity="center_vertical"
-                android:layout_marginBottom="1dp"
-                android:layout_marginLeft="1dp"
-                android:layout_marginTop="1dp" />
+                android:layout_marginBottom="0dp"
+                android:layout_marginLeft="0dp"
+                android:layout_marginTop="0dp"
+                android:layout_marginRight="1dp" />
 
-            <!--<ImageView
-                android:id="@+id/imageView1"
+            <ImageView
+                android:id="@+id/preferredLineImage"
                 android:layout_width="50dp"
                 android:layout_height="fill_parent"
                 android:layout_gravity="center_vertical"
-                android:layout_margin="1dp"
+                android:layout_marginBottom="0dp"
+                android:layout_marginLeft="0dp"
+                android:layout_marginTop="0dp"
+                android:layout_marginRight="0dp"
                 android:background="@color/toolbar_background_color"
-                android:contentDescription="Settings"
+                android:contentDescription="Preferred Line"
                 android:cropToPadding="true"
                 android:scaleType="center"
-                android:src="@drawable/action_settings" />
-            -->
+                android:src="@drawable/rating_not_important" />
         </TableRow>
     </TableLayout>
 

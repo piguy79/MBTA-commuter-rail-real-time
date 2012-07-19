@@ -9,9 +9,12 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
+import java.util.Set;
 
 import org.joda.time.LocalTime;
 import org.json.JSONArray;
@@ -36,6 +39,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
+import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.SimpleAdapter;
 import android.widget.Spinner;
@@ -52,8 +56,10 @@ public class TrainSelectionView extends Activity {
     private static final String ACTUAL_TIME = "actualTime";
     private static final String ACTUAL_TIME_COLOR_ID = "actualTimeColorId";
     private static final String ETA = "ETA: ";
+
     private static final String REAL_TIME_WARNING_SHOWN = "realTimeWarningShown";
     private static final String PREF_STORAGE_NAME = "trainSelectionPrefs";
+    private static final String PREF_PREFERRED_LINES = "preferredLines";
 
     private static final String LAST_UPDATE = "Last update: ";
     private static final String LAST_UPDATE_RETRIEVING = LAST_UPDATE + "Retrieving...";
@@ -65,6 +71,7 @@ public class TrainSelectionView extends Activity {
     private Spinner trainSelectionSpinner;
     private TextView realTimeUpdateConnectionStatusTextView;
     private ListView trainScheduleListView;
+    private ImageView preferredLineImage;
 
     private int trainDelayLateColor;
     private int trainDelayWarningColor;
@@ -177,12 +184,98 @@ public class TrainSelectionView extends Activity {
                 trainScheduleListView.setAdapter(stopTimeAdapter);
 
                 startRealTimeUpdatePosts();
+                refreshPreferredLineImage();
             }
 
             public void onNothingSelected(AdapterView<?> parent) {
 
             }
         });
+
+        preferredLineImage = (ImageView) findViewById(R.id.preferredLineImage);
+        preferredLineImage.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                togglePreferredLines();
+            }
+        });
+
+    }
+
+    /**
+     * Based on the given trip, check if the user has previously marked this as
+     * a preferred line. If so, show the "selected star" image. Otherwise, show
+     * the "unselected star".
+     */
+    private void refreshPreferredLineImage() {
+        if (isSelectedTripPreferred()) {
+            preferredLineImage.setImageDrawable(getResources().getDrawable(R.drawable.rating_important));
+        } else {
+            preferredLineImage.setImageDrawable(getResources().getDrawable(R.drawable.rating_not_important));
+        }
+    }
+
+    private void togglePreferredLines() {
+        boolean isPreferred = isSelectedTripPreferred();
+
+        Trip selectedTrip = (Trip) trainSelectionSpinner.getSelectedItem();
+
+        SharedPreferences prefs = getSharedPreferences(PREF_STORAGE_NAME, 0);
+        Set<String> preferredLines = getCsvAsSet(prefs.getString(PREF_PREFERRED_LINES, ""));
+
+        SharedPreferences.Editor editor = prefs.edit();
+
+        if (isPreferred) {
+            preferredLineImage.setImageDrawable(getResources().getDrawable(R.drawable.rating_not_important));
+            preferredLines.remove(selectedTrip.tripId);
+        } else {
+            preferredLineImage.setImageDrawable(getResources().getDrawable(R.drawable.rating_important));
+            preferredLines.add(selectedTrip.tripId);
+        }
+        editor.putString(PREF_PREFERRED_LINES, getSetAsCsv(preferredLines));
+        editor.commit();
+    }
+
+    private Set<String> getCsvAsSet(String csv) {
+        if (csv.isEmpty()) {
+            return new HashSet<String>();
+        }
+
+        Set<String> valueSet = new HashSet<String>();
+        String[] values = csv.split(",");
+        for (int i = 0; i < values.length; ++i) {
+            valueSet.add(values[i]);
+        }
+
+        return valueSet;
+    }
+
+    private String getSetAsCsv(Set<String> valueSet) {
+        if(valueSet.isEmpty()) {
+            return "";
+        }
+        StringBuilder sb = new StringBuilder("");
+
+        for (Iterator<String> iter = valueSet.iterator(); iter.hasNext();) {
+            sb.append(iter.next()).append(",");
+        }
+        sb.deleteCharAt(sb.length() - 1);
+
+        return sb.toString();
+    }
+
+    private boolean isSelectedTripPreferred() {
+        SharedPreferences prefs = getSharedPreferences(PREF_STORAGE_NAME, 0);
+        Set<String> preferredLines = getCsvAsSet(prefs.getString(PREF_PREFERRED_LINES, ""));
+
+        Trip selectedTrip = (Trip) trainSelectionSpinner.getSelectedItem();
+
+        for (Iterator<String> iter = preferredLines.iterator(); iter.hasNext();) {
+            if (selectedTrip.tripId.equals(iter.next())) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private void startRealTimeUpdatePosts() {
@@ -215,6 +308,15 @@ public class TrainSelectionView extends Activity {
 
     @Override
     protected void onResume() {
+        if (trips == null) {
+            Intent lineSelectionPageIntent = new Intent(this, MBTACommuterRailActivity.class);
+            startActivity(lineSelectionPageIntent);
+
+            super.onResume();
+
+            return;
+        }
+
         SharedPreferences prefs = getSharedPreferences(PREF_STORAGE_NAME, 0);
         boolean realTimeWarningShown = prefs.getBoolean(REAL_TIME_WARNING_SHOWN, false);
 
