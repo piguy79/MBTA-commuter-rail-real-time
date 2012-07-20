@@ -15,7 +15,6 @@ import java.util.ListIterator;
 import java.util.Map;
 import java.util.Set;
 
-import org.joda.time.DateTime;
 import org.joda.time.LocalTime;
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -27,12 +26,14 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.content.res.Configuration;
+import android.graphics.Typeface;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
+import android.text.SpannableString;
+import android.text.style.StyleSpan;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
@@ -142,6 +143,27 @@ public class TrainSelectionView extends Activity {
 
                 return view;
             }
+
+            @Override
+            public View getDropDownView(int position, View convertView, ViewGroup parent) {
+                ViewGroup viewGroup = (ViewGroup) super.getDropDownView(position, convertView, parent);
+                TextView view = (TextView) viewGroup.findViewById(R.id.chosenLineText);
+            
+                
+                Object item = getItem(position);
+                if (item instanceof Trip) {
+                    Trip trip = (Trip) item;
+                    if (isTripPreferred(trip)) {
+                        SpannableString spanString = new SpannableString(view.getText());
+                        spanString.setSpan(new StyleSpan(Typeface.BOLD), 0, spanString.length(), 0);
+                        view.setText(spanString);
+                    } else {
+
+                    }
+                }
+
+                return viewGroup;
+            }
         };
         tripsAdapter.setDropDownViewResource(R.layout.train_selection_item);
         trainSelectionSpinner.setAdapter(tripsAdapter);
@@ -238,13 +260,17 @@ public class TrainSelectionView extends Activity {
     }
 
     private boolean isSelectedTripPreferred() {
+        Trip selectedTrip = (Trip) trainSelectionSpinner.getSelectedItem();
+
+        return isTripPreferred(selectedTrip);
+    }
+
+    private boolean isTripPreferred(Trip trip) {
         SharedPreferences prefs = getSharedPreferences(PREF_STORAGE_NAME + selectedLine, 0);
         Set<String> preferredLines = SharedPreferencesLibrary.getCsvAsSet(prefs.getString(PREF_PREFERRED_LINES, ""));
 
-        Trip selectedTrip = (Trip) trainSelectionSpinner.getSelectedItem();
-
         for (Iterator<String> iter = preferredLines.iterator(); iter.hasNext();) {
-            if (selectedTrip.tripId.equals(iter.next())) {
+            if (trip.tripId.equals(iter.next())) {
                 return true;
             }
         }
