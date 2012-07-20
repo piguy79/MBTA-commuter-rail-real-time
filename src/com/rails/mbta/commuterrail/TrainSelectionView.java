@@ -9,13 +9,13 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.Set;
 
+import org.joda.time.DateTime;
 import org.joda.time.LocalTime;
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -27,6 +27,7 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.res.Configuration;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.AsyncTask;
@@ -49,6 +50,7 @@ import com.rails.mbta.commuterrail.model.Flag;
 import com.rails.mbta.commuterrail.model.TripStop;
 import com.rails.mbta.commuterrail.schedule.StopTime;
 import com.rails.mbta.commuterrail.schedule.Trip;
+import com.rails.mbta.commuterrail.util.SharedPreferencesLibrary;
 
 public class TrainSelectionView extends Activity {
     private static final String SCHEDULED_TIME = "scheduleTime";
@@ -219,8 +221,8 @@ public class TrainSelectionView extends Activity {
 
         Trip selectedTrip = (Trip) trainSelectionSpinner.getSelectedItem();
 
-        SharedPreferences prefs = getSharedPreferences(PREF_STORAGE_NAME, 0);
-        Set<String> preferredLines = getCsvAsSet(prefs.getString(PREF_PREFERRED_LINES, ""));
+        SharedPreferences prefs = getSharedPreferences(PREF_STORAGE_NAME + selectedLine, 0);
+        Set<String> preferredLines = SharedPreferencesLibrary.getCsvAsSet(prefs.getString(PREF_PREFERRED_LINES, ""));
 
         SharedPreferences.Editor editor = prefs.edit();
 
@@ -231,41 +233,13 @@ public class TrainSelectionView extends Activity {
             preferredLineImage.setImageDrawable(getResources().getDrawable(R.drawable.rating_important));
             preferredLines.add(selectedTrip.tripId);
         }
-        editor.putString(PREF_PREFERRED_LINES, getSetAsCsv(preferredLines));
+        editor.putString(PREF_PREFERRED_LINES, SharedPreferencesLibrary.getSetAsCsv(preferredLines));
         editor.commit();
     }
 
-    private Set<String> getCsvAsSet(String csv) {
-        if (csv.isEmpty()) {
-            return new HashSet<String>();
-        }
-
-        Set<String> valueSet = new HashSet<String>();
-        String[] values = csv.split(",");
-        for (int i = 0; i < values.length; ++i) {
-            valueSet.add(values[i]);
-        }
-
-        return valueSet;
-    }
-
-    private String getSetAsCsv(Set<String> valueSet) {
-        if(valueSet.isEmpty()) {
-            return "";
-        }
-        StringBuilder sb = new StringBuilder("");
-
-        for (Iterator<String> iter = valueSet.iterator(); iter.hasNext();) {
-            sb.append(iter.next()).append(",");
-        }
-        sb.deleteCharAt(sb.length() - 1);
-
-        return sb.toString();
-    }
-
     private boolean isSelectedTripPreferred() {
-        SharedPreferences prefs = getSharedPreferences(PREF_STORAGE_NAME, 0);
-        Set<String> preferredLines = getCsvAsSet(prefs.getString(PREF_PREFERRED_LINES, ""));
+        SharedPreferences prefs = getSharedPreferences(PREF_STORAGE_NAME + selectedLine, 0);
+        Set<String> preferredLines = SharedPreferencesLibrary.getCsvAsSet(prefs.getString(PREF_PREFERRED_LINES, ""));
 
         Trip selectedTrip = (Trip) trainSelectionSpinner.getSelectedItem();
 
@@ -317,6 +291,9 @@ public class TrainSelectionView extends Activity {
             return;
         }
 
+        /*
+         * Show real-time beta message one time only to the user.
+         */
         SharedPreferences prefs = getSharedPreferences(PREF_STORAGE_NAME, 0);
         boolean realTimeWarningShown = prefs.getBoolean(REAL_TIME_WARNING_SHOWN, false);
 
@@ -332,6 +309,9 @@ public class TrainSelectionView extends Activity {
             alert.show();
         }
 
+        /*
+         * Let the user know that the current day has no trips.
+         */
         if (trips.length == 0) {
             AlertDialog.Builder builder = new AlertDialog.Builder(this);
             builder.setMessage("No scheduled trips for today").setCancelable(false)
@@ -344,9 +324,50 @@ public class TrainSelectionView extends Activity {
             alert.show();
         }
 
+        selectClosestPreferredTrip();
         startRealTimeUpdatePosts();
 
         super.onResume();
+    }
+
+    private void selectClosestPreferredTrip() {
+        SharedPreferences prefs = getSharedPreferences(PREF_STORAGE_NAME + selectedLine, 0);
+        Set<String> preferredLines = SharedPreferencesLibrary.getCsvAsSet(prefs.getString(PREF_PREFERRED_LINES, ""));
+
+        if (preferredLines.isEmpty()) {
+            return;
+        }
+
+        int preferredLineCount = preferredLines.size();
+        LocalTime now = LocalTime.now();
+
+        for (int i = 0; i < trips.length; ++i) {
+            if (preferredLineCount == 1) {
+                if (preferredLines.contains(trips[i].tripId)) {
+                    trainSelectionSpinner.setSelection(i);
+                    return;
+                }
+            } else {
+                /*
+                 * Select first preferred trip that is greater than 1 hour ago.
+                 */
+                LocalTime departureTime = trips[i].stopTimes.get(0).departureTime;
+                if (departureTime.isAfter(now.minusMinutes(60)) && preferredLines.contains(trips[i].tripId)) {
+                    trainSelectionSpinner.setSelection(i);
+                    return;
+                }
+            }
+        }
+
+        /*
+         * If none found, select the first match regardless of time.
+         */
+        for (int i = 0; i < trips.length; ++i) {
+            if (preferredLines.contains(trips[i].tripId)) {
+                trainSelectionSpinner.setSelection(i);
+                return;
+            }
+        }
     }
 
     public boolean onKeyDown(int keyCode, KeyEvent event) {
