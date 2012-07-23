@@ -1,7 +1,7 @@
 package com.rails.mbta.commuterrail.model;
 
 public enum Flag {
-    SCH("Determining"), PRE("Known"), APP("Approaching"), ARR("Arrived"), DEP("Departed"), DEL("Delayed");
+    SCH("Scheduled"), PRE("Known"), APP("Approaching"), ARR("Arrived"), DEP("Departed"), DEL("Delayed");
 
     private String text;
 

@@ -22,6 +22,7 @@ import org.json.JSONObject;
 
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.app.Dialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -33,7 +34,10 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
 import android.text.SpannableString;
+import android.text.style.BackgroundColorSpan;
+import android.text.style.ForegroundColorSpan;
 import android.text.style.StyleSpan;
+import android.text.style.TextAppearanceSpan;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
@@ -46,6 +50,7 @@ import android.widget.ListView;
 import android.widget.SimpleAdapter;
 import android.widget.Spinner;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.rails.mbta.commuterrail.model.Flag;
 import com.rails.mbta.commuterrail.model.TripStop;
@@ -148,8 +153,7 @@ public class TrainSelectionView extends Activity {
             public View getDropDownView(int position, View convertView, ViewGroup parent) {
                 ViewGroup viewGroup = (ViewGroup) super.getDropDownView(position, convertView, parent);
                 TextView view = (TextView) viewGroup.findViewById(R.id.chosenLineText);
-            
-                
+
                 Object item = getItem(position);
                 if (item instanceof Trip) {
                     Trip trip = (Trip) item;
@@ -157,8 +161,6 @@ public class TrainSelectionView extends Activity {
                         SpannableString spanString = new SpannableString(view.getText());
                         spanString.setSpan(new StyleSpan(Typeface.BOLD), 0, spanString.length(), 0);
                         view.setText(spanString);
-                    } else {
-
                     }
                 }
 
@@ -251,9 +253,16 @@ public class TrainSelectionView extends Activity {
         if (isPreferred) {
             preferredLineImage.setImageDrawable(getResources().getDrawable(R.drawable.rating_not_important));
             preferredLines.remove(selectedTrip.tripId);
+
+            Toast.makeText(this, "Your preferred trip was removed", Toast.LENGTH_SHORT).show();
         } else {
             preferredLineImage.setImageDrawable(getResources().getDrawable(R.drawable.rating_important));
             preferredLines.add(selectedTrip.tripId);
+
+            Toast toast = Toast.makeText(this, "Your preferred trip was saved", Toast.LENGTH_SHORT);
+            TextView toastText = (TextView) toast.getView().findViewById(android.R.id.message);
+            toastText.setTextColor(getResources().getColor(R.color.saved_color));
+            toast.show();
         }
         editor.putString(PREF_PREFERRED_LINES, SharedPreferencesLibrary.getSetAsCsv(preferredLines));
         editor.commit();
