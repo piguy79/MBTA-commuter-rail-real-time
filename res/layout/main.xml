@@ -16,7 +16,9 @@
             android:layout_gravity="right"
             android:layout_weight="1"
             android:text="mb"
-            android:textSize="40dp" />
+            android:textSize="40dp"
+            android:gravity="right"
+            android:background="@color/mbtaPurple" />
 
         <TextView
             android:id="@+id/taText"
@@ -24,7 +26,9 @@
             android:layout_height="match_parent"
             android:layout_weight="1"
             android:text="ta"
-            android:textSize="40dp" />
+            android:textSize="40dp"
+            android:gravity="left"
+            android:textColor="@color/mbtaPurple" />
     </LinearLayout>
 
     <LinearLayout

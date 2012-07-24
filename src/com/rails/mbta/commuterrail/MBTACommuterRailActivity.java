@@ -41,16 +41,6 @@ public class MBTACommuterRailActivity extends Activity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.main);
 
-        int mbtaPurpleId = getResources().getColor(R.color.mbtaPurple);
-
-        TextView mb = (TextView) findViewById(R.id.mbText);
-        mb.setBackgroundColor(mbtaPurpleId);
-        mb.setGravity(Gravity.RIGHT);
-
-        TextView ta = (TextView) findViewById(R.id.taText);
-        ta.setTextColor(mbtaPurpleId);
-        ta.setGravity(Gravity.LEFT);
-
         final Spinner chosenLineSpinner = (Spinner) findViewById(R.id.chosenLine);
         ArrayAdapter<Line> commuterRailLinesAdapter = new ArrayAdapter<Line>(this, R.layout.train_selection_spinner,
                 R.id.chosenLineText, Line.values());
@@ -144,7 +134,7 @@ public class MBTACommuterRailActivity extends Activity {
 
             Common.trips = result.trips.toArray(new Trip[result.trips.size()]);
 
-            Intent intent = new Intent(activity, TrainSelectionView.class);
+            Intent intent = new Intent(activity, ScheduleActivity.class);
 
             Bundle extras = new Bundle();
             extras.putInt(SELECTED_LINE, selectedLine);
