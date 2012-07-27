@@ -2,6 +2,7 @@ package com.rails.mbta.commuterrail.model;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.math.BigDecimal;
 import java.util.Date;
 
 public class TripStop {
@@ -12,8 +13,8 @@ public class TripStop {
     private Date scheduled;
     private Flag flag;
     private Integer vehicle;
-    private String longitude;
-    private String latitude;
+    private BigDecimal longitude;
+    private BigDecimal latitude;
     private Integer direction;
     private Integer speed;
     private Integer lateness;
@@ -30,6 +31,8 @@ public class TripStop {
                     args[0] = null;
                 } else if (parameter == Integer.class) {
                     args[0] = new Integer(value);
+                } else if (parameter == BigDecimal.class) {
+                    args[0] = new BigDecimal(value);
                 } else if (parameter == Date.class) {
                     args[0] = new Date(Long.parseLong(value));
                 } else if (parameter == Destination.class) {
@@ -112,19 +115,19 @@ public class TripStop {
         this.vehicle = vehicle;
     }
 
-    public String getLongitude() {
+    public BigDecimal getLongitude() {
         return longitude;
     }
 
-    public void setLongitude(String longitude) {
+    public void setLongitude(BigDecimal longitude) {
         this.longitude = longitude;
     }
 
-    public String getLatitude() {
+    public BigDecimal getLatitude() {
         return latitude;
     }
 
-    public void setLatitude(String latitude) {
+    public void setLatitude(BigDecimal latitude) {
         this.latitude = latitude;
     }
 

@@ -14,13 +14,11 @@ import android.content.SharedPreferences;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.util.Log;
-import android.view.Gravity;
 import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.Spinner;
-import android.widget.TextView;
 
 import com.rails.mbta.commuterrail.model.Line;
 import com.rails.mbta.commuterrail.schedule.Route;
@@ -134,7 +132,7 @@ public class MBTACommuterRailActivity extends Activity {
 
             Common.trips = result.trips.toArray(new Trip[result.trips.size()]);
 
-            Intent intent = new Intent(activity, ScheduleActivity.class);
+            Intent intent = new Intent(activity, RealTimeActivity.class);
 
             Bundle extras = new Bundle();
             extras.putInt(SELECTED_LINE, selectedLine);
