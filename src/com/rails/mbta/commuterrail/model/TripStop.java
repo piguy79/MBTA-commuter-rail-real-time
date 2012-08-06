@@ -13,8 +13,8 @@ public class TripStop {
     private Date scheduled;
     private Flag flag;
     private Integer vehicle;
-    private BigDecimal longitude;
-    private BigDecimal latitude;
+    private Double longitude;
+    private Double latitude;
     private Integer direction;
     private Integer speed;
     private Integer lateness;
@@ -31,8 +31,8 @@ public class TripStop {
                     args[0] = null;
                 } else if (parameter == Integer.class) {
                     args[0] = new Integer(value);
-                } else if (parameter == BigDecimal.class) {
-                    args[0] = new BigDecimal(value);
+                } else if (parameter == Double.class) {
+                    args[0] = new Double(value);
                 } else if (parameter == Date.class) {
                     args[0] = new Date(Long.parseLong(value));
                 } else if (parameter == Destination.class) {
@@ -115,19 +115,19 @@ public class TripStop {
         this.vehicle = vehicle;
     }
 
-    public BigDecimal getLongitude() {
+    public Double getLongitude() {
         return longitude;
     }
 
-    public void setLongitude(BigDecimal longitude) {
+    public void setLongitude(Double longitude) {
         this.longitude = longitude;
     }
 
-    public BigDecimal getLatitude() {
+    public Double getLatitude() {
         return latitude;
     }
 
-    public void setLatitude(BigDecimal latitude) {
+    public void setLatitude(Double latitude) {
         this.latitude = latitude;
     }
 

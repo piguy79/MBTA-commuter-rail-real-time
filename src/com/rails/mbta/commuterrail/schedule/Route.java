@@ -10,4 +10,5 @@ public class Route implements Serializable {
     public String routeLongName;
 
     public List<Trip> trips = new ArrayList<Trip>();
+    public List<Station> stations = new ArrayList<Station>();
 }

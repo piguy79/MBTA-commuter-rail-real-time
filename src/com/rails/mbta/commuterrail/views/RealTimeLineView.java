@@ -1,6 +1,5 @@
 package com.rails.mbta.commuterrail.views;
 
-import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -9,6 +8,7 @@ import java.util.TreeMap;
 import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Paint;
+import android.graphics.Path;
 import android.graphics.RectF;
 import android.util.AttributeSet;
 import android.view.View;
@@ -16,8 +16,7 @@ import android.view.View;
 import com.rails.mbta.commuterrail.Common;
 import com.rails.mbta.commuterrail.R;
 import com.rails.mbta.commuterrail.model.TripStop;
-import com.rails.mbta.commuterrail.schedule.Stop;
-import com.rails.mbta.commuterrail.schedule.StopTime;
+import com.rails.mbta.commuterrail.schedule.Station;
 
 public class RealTimeLineView extends View {
 
@@ -31,8 +30,11 @@ public class RealTimeLineView extends View {
     private static float LINE_Y_OFFSET_RATIO = 0.08f;
     private static float STOP_RADIUS = 4.0f;
 
-    private List<TrainWithNearestStops> trainWithNearestStops = new ArrayList<TrainWithNearestStops>();
-    private Map<Integer, Stop> stops = new TreeMap<Integer, Stop>();
+    private List<TrainWithNearestStations> trainWithNearestStations = new ArrayList<TrainWithNearestStations>();
+    private List<Station> stations;
+    private List<Station> stationsTrunk = new ArrayList<Station>();
+    private List<Station> stationsPrimary = new ArrayList<Station>();
+    private List<Station> stationsSecondary = new ArrayList<Station>();
 
     public RealTimeLineView(Context context, AttributeSet attrs, int defStyle) {
         super(context, attrs, defStyle);
@@ -47,24 +49,21 @@ public class RealTimeLineView extends View {
     }
 
     public void render(Map<String, TripStop> trainsInMotion) {
-        trainWithNearestStops.clear();
+        trainWithNearestStations.clear();
 
         for (Map.Entry<String, TripStop> trainInMotion : trainsInMotion.entrySet()) {
-            TreeMap<Double, Stop> nearestStops = new TreeMap<Double, Stop>();
+            TreeMap<Double, Station> nearestStation = new TreeMap<Double, Station>();
 
-            for (Map.Entry<Integer, Stop> stop : stops.entrySet()) {
-                BigDecimal stopLat = new BigDecimal(stop.getValue().stopLat);
-                BigDecimal stopLon = new BigDecimal(stop.getValue().stopLon);
+            for (Station station : stations) {
+                double distance = Math.pow(station.stopLat - trainInMotion.getValue().getLatitude(), 2.0);
+                distance += Math.pow(station.stopLon - trainInMotion.getValue().getLongitude(), 2.0);
+                double dist = Math.sqrt(distance);
 
-                BigDecimal distance = stopLat.subtract(trainInMotion.getValue().getLatitude()).pow(2);
-                distance = distance.add(stopLon.subtract(trainInMotion.getValue().getLongitude()).pow(2));
-                double dist = Math.sqrt(distance.doubleValue());
-
-                nearestStops.put(dist, stop.getValue());
+                nearestStation.put(dist, station);
             }
 
-            trainWithNearestStops.add(new TrainWithNearestStops(trainInMotion.getValue(), nearestStops
-                    .remove(nearestStops.firstKey()), nearestStops.remove(nearestStops.firstKey())));
+            trainWithNearestStations.add(new TrainWithNearestStations(trainInMotion.getValue(), nearestStation
+                    .remove(nearestStation.firstKey()), nearestStation.remove(nearestStation.firstKey())));
         }
 
         invalidate();
@@ -77,17 +76,18 @@ public class RealTimeLineView extends View {
         stopTextPaint.setTextSize(12.0f);
         borderPaint.setColor(getResources().getColor(R.color.border_color));
 
-        for (int i = 0; i < Common.trips.length; ++i) {
-            /*
-             * Only read stops in one direction, since the sequence id is
-             * reversed for trips in the opposing direction.
-             */
-            if (Common.trips[i].directionId == 0) {
-                continue;
-            }
-            for (int j = 0; j < Common.trips[i].stopTimes.size(); ++j) {
-                StopTime stopTime = Common.trips[i].stopTimes.get(j);
-                stops.put(stopTime.stopSequence, stopTime.stop);
+        stationsTrunk.clear();
+        stationsPrimary.clear();
+        stationsSecondary.clear();
+
+        stations = Common.trips[0].route.stations;
+        for (Station station : stations) {
+            if (station.branch.equals("Trunk")) {
+                stationsTrunk.add(station);
+            } else if (station.branch.equals("Primary")) {
+                stationsPrimary.add(station);
+            } else if (station.branch.equals("Secondary")) {
+                stationsSecondary.add(station);
             }
         }
     }
@@ -95,35 +95,126 @@ public class RealTimeLineView extends View {
     @Override
     protected void onDraw(Canvas canvas) {
         float width = canvas.getWidth();
-        float height = canvas.getHeight();
+        float height = canvas.getHeight() - 2 * canvas.getHeight() * LINE_Y_OFFSET_RATIO;
+        float top = canvas.getHeight() * LINE_Y_OFFSET_RATIO;
+        float bottom = top + height;
 
-        float lineXOffset = width * LINE_X_OFFSET_RATIO;
-        float lineXEndOffset = width * LINE_X_END_OFFSET_RATIO;
-        float lineYOffset = height * LINE_Y_OFFSET_RATIO;
-        float lineHeight = height - lineYOffset - lineYOffset;
+        /*
+         * Render the stations in chunks: Trunk, Primary, Secondary. Latter two
+         * are optional.
+         */
+        if (stationsPrimary.isEmpty() && stationsSecondary.isEmpty()) {
+            drawSection(canvas, 0, top, width / 2.0f, bottom, stationsTrunk, true, true, 0.0f);
+        } else {
+            int maxStops = Math.max(stationsPrimary.size(), stationsSecondary.size()) + stationsTrunk.size();
 
-        canvas.drawRect(lineXOffset, lineYOffset, lineXEndOffset, height - lineYOffset, linePaint);
+            float ratioThatIsNotOnTrunk = 1.0f - (float) stationsTrunk.size() / (float) maxStops;
+            float halfWidth = width / 2.0f;
 
-        float stopSpacing = lineHeight / (stops.size() - 1);
+            /*
+             * Find with section has the 1st stop sequence
+             */
+            int currentStopSequence = 0;
+
+            float stopDiff = height / ((float) maxStops - 1.0f);
+
+            if (stationsTrunk.get(0).stopSequence == 1) {
+                for (Station nextStation : stationsTrunk) {
+                    if (nextStation.stopSequence != currentStopSequence + 1) {
+                        break;
+                    }
+                    currentStopSequence++;
+
+                }
+
+            }
+
+            float startBranchY = top + height * ((currentStopSequence + 1.0f) / (float) maxStops);
+            float endBranchY = startBranchY + (ratioThatIsNotOnTrunk * (height - stopDiff));
+
+            drawSection(canvas, 0, startBranchY, halfWidth, endBranchY, stationsPrimary,
+                    currentStopSequence == 0 ? true : false, false, stopDiff);
+            drawSection(canvas, halfWidth, startBranchY, width, endBranchY, stationsSecondary,
+                    currentStopSequence == 0 ? true : false, false, stopDiff);
+
+            // Draw trunk last to avoid overlapping connectors
+            if (stationsTrunk.get(0).stopSequence == 1) {
+                drawSection(canvas, 0, top, halfWidth, top + height * (currentStopSequence / (float) maxStops),
+                        stationsTrunk.subList(0, currentStopSequence), true, false, stopDiff);
+            }
+
+            if (currentStopSequence != stationsTrunk.size()) {
+                drawSection(canvas, 0, endBranchY + stopDiff, halfWidth, bottom,
+                        stationsTrunk.subList(currentStopSequence, stationsTrunk.size()), false, true, 0.0f);
+            }
+        }
+    }
+
+    private void drawSection(Canvas canvas, float left, float top, float right, float bottom, List<Station> stations,
+            boolean isBeginSection, boolean isEndSection, float nextStopYDiff) {
+        float width = right - left;
+        float height = bottom - top;
+
+        float lineXOffset = left + width * LINE_X_OFFSET_RATIO;
+        float lineXEndOffset = left + width * LINE_X_END_OFFSET_RATIO;
+
+        if (left == 0) {
+            canvas.drawRect(lineXOffset, top - STOP_RADIUS, lineXEndOffset, top + height + nextStopYDiff + 2
+                    * STOP_RADIUS, linePaint);
+        } else {
+            canvas.drawRect(lineXOffset, top - STOP_RADIUS, lineXEndOffset, top + height + 2 * STOP_RADIUS, linePaint);
+
+            /*
+             * Connect this secondary line back to the trunk
+             */
+
+            // Top to trunk
+            Path connector = new Path();
+            if (!isBeginSection) {
+                connector.moveTo(lineXOffset, top + 4);
+                connector.lineTo(width * LINE_X_OFFSET_RATIO, top - nextStopYDiff + 4);
+                connector.lineTo(width * LINE_X_END_OFFSET_RATIO, top - nextStopYDiff - 5);
+                connector.lineTo(lineXEndOffset, top - 5);
+                connector.lineTo(lineXOffset, top - +4);
+                canvas.drawPath(connector, linePaint);
+            }
+
+            // Bottom to trunk
+            connector = new Path();
+            connector.moveTo(lineXOffset, top + height - 4);
+            connector.lineTo(width * LINE_X_OFFSET_RATIO, top + height + nextStopYDiff - 4);
+            connector.lineTo(width * LINE_X_END_OFFSET_RATIO, top + height + nextStopYDiff + 5);
+            connector.lineTo(lineXEndOffset, top + height + 5);
+            connector.lineTo(lineXOffset, top + height - 4);
+            canvas.drawPath(connector, linePaint);
+        }
+
+        float stopSpacing = 0.0f;
+        if (stations.size() > 1) {
+            stopSpacing = height / (stations.size() - 1);
+        } else {
+            stopSpacing = height;
+        }
+
         int i = 0;
         float stopXOffset = lineXOffset + (lineXEndOffset - lineXOffset) / 2;
-        float stopYOffset = lineYOffset;
+        float stopYOffset = top;
         float stopTextXOffset = lineXEndOffset + 5;
-        for (Map.Entry<Integer, Stop> entrySet : stops.entrySet()) {
+        for (Station station : stations) {
             float yOffset = stopYOffset + i * stopSpacing;
             float radiusModifier = 0.0f;
-            if (i == 0 || i == stops.size() - 1) {
-                radiusModifier = 7.0f;
+            if ((i == 0 && isBeginSection) || (i == stations.size() - 1 && isEndSection)) {
+                radiusModifier = 6.0f;
                 canvas.drawCircle(stopXOffset, yOffset, STOP_RADIUS + 5.0f + radiusModifier, linePaint);
             }
             canvas.drawCircle(stopXOffset, yOffset, STOP_RADIUS + 1.0f + radiusModifier, borderPaint);
             canvas.drawCircle(stopXOffset, yOffset, STOP_RADIUS + radiusModifier, stopPaint);
-            canvas.drawText(entrySet.getValue().stopName, stopTextXOffset, yOffset + 2, stopTextPaint);
+            canvas.drawText(station.stopId, stopTextXOffset, yOffset + 2, stopTextPaint);
 
-            for (TrainWithNearestStops nearestTrains : trainWithNearestStops) {
-                if (nearestTrains.closestStop.stopName.equals(entrySet.getValue().stopName)) {
+            for (TrainWithNearestStations nearestTrains : trainWithNearestStations) {
+                if (nearestTrains.closestStop.stopId.equals(station.stopId)) {
                     nearestTrains.firstStopYOffset = yOffset;
-                } else if (nearestTrains.secondClosestStop.stopName.equals(entrySet.getValue().stopName)) {
+                } else if (nearestTrains.secondClosestStop.stopId.equals(station.stopId)) {
                     nearestTrains.lastStopYOffset = yOffset;
                 }
             }
@@ -131,20 +222,22 @@ public class RealTimeLineView extends View {
             ++i;
         }
 
-        for (TrainWithNearestStops nearestTrain : trainWithNearestStops) {
-            canvas.drawRect(new RectF(lineXOffset - 3, nearestTrain.firstStopYOffset, lineXEndOffset + 3,
-                    nearestTrain.firstStopYOffset + 10), stopTextPaint);
+        for (TrainWithNearestStations nearestTrain : trainWithNearestStations) {
+            if (stations.contains(nearestTrain.closestStop)) {
+                canvas.drawRect(new RectF(lineXOffset - 3, nearestTrain.firstStopYOffset, lineXEndOffset + 3,
+                        nearestTrain.firstStopYOffset + 10), stopTextPaint);
+            }
         }
     }
 
-    private static class TrainWithNearestStops {
+    private static class TrainWithNearestStations {
         public TripStop trainInMotionTripStop;
-        public Stop closestStop;
-        public Stop secondClosestStop;
+        public Station closestStop;
+        public Station secondClosestStop;
         public float firstStopYOffset = -1.0f;
         public float lastStopYOffset = -1.0f;
 
-        public TrainWithNearestStops(TripStop trainInMotionTripStop, Stop closestStop, Stop secondClosestStop) {
+        public TrainWithNearestStations(TripStop trainInMotionTripStop, Station closestStop, Station secondClosestStop) {
             super();
             this.trainInMotionTripStop = trainInMotionTripStop;
             this.closestStop = closestStop;

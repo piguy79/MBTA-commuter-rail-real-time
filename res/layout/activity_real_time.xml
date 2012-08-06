@@ -82,6 +82,7 @@
             android:gravity="right" />
     </LinearLayout>
 
+    <!-- 
     <com.google.ads.AdView
         android:id="@+id/adView"
         android:layout_width="fill_parent"
@@ -91,5 +92,6 @@
         ads:loadAdOnCreate="true"
         ads:testDevices="TEST_EMULATOR, 36263DCA5A61F683DEFACFC0B3A2D62E" >
     </com.google.ads.AdView>
+     -->
 
 </LinearLayout>
