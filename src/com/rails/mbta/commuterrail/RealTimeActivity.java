@@ -53,7 +53,6 @@ public class RealTimeActivity extends Activity {
 
     private int selectedLine;
 
-    private TextView realTimeUpdateConnectionStatusTextView;
     private TextView realTimeUpdateStatusTextView;
     private RealTimeLineView realTimeLineView;
 
@@ -81,9 +80,8 @@ public class RealTimeActivity extends Activity {
         trips = Common.trips;
 
         realTimeUpdateStatusTextView = (TextView) findViewById(R.id.realTimeUpdateStatusTextView);
-        realTimeUpdateConnectionStatusTextView = (TextView) findViewById(R.id.realTimeUpdateConnectionStatusTextView);
         realTimeLineView = (RealTimeLineView) findViewById(R.id.realTimeLineView1);
-        
+
         defaultColor = realTimeUpdateStatusTextView.getTextColors().getDefaultColor();
     }
 
@@ -153,7 +151,7 @@ public class RealTimeActivity extends Activity {
         realTimeUpdateStatusTextView.setText(LAST_UPDATE_RETRIEVING);
         ConnectivityManager connectivityManager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
         realTimeUpdateRunnable = new RealTimeUpdateRunnable(selectedLine, connectivityManager,
-                realTimeUpdateStatusTextView, realTimeUpdateConnectionStatusTextView);
+                realTimeUpdateStatusTextView);
         realTimeUpdateHandler.post(realTimeUpdateRunnable);
     }
 
@@ -168,27 +166,26 @@ public class RealTimeActivity extends Activity {
         private int selectedLine;
         private ConnectivityManager connectivityManager;
         private TextView realTimeUpdateStatusTextView;
-        private TextView realTimeUpdateConnectionStatusTextView;
         private boolean shouldKill = false;
+        private LoadLineInformation lastLoadLine;
 
         public RealTimeUpdateRunnable(int selectedLine, ConnectivityManager connectivityManager,
-                TextView realTimeUpdateStatusTextView, TextView realTimeUpdateConnectionStatusTextView) {
+                TextView realTimeUpdateStatusTextView) {
             this.selectedLine = selectedLine;
             this.connectivityManager = connectivityManager;
             this.realTimeUpdateStatusTextView = realTimeUpdateStatusTextView;
-            this.realTimeUpdateConnectionStatusTextView = realTimeUpdateConnectionStatusTextView;
         }
 
         public void kill() {
             this.shouldKill = true;
+            lastLoadLine.cancel(true);
         }
 
         public void run() {
             if (!shouldKill) {
-                new LoadLineInformation(connectivityManager, realTimeUpdateStatusTextView,
-                        realTimeUpdateConnectionStatusTextView, this).execute(Integer.toString(selectedLine));
+                lastLoadLine = new LoadLineInformation(connectivityManager, realTimeUpdateStatusTextView, this);
+                lastLoadLine.execute(Integer.toString(selectedLine));
             }
-
         }
     }
 
@@ -199,14 +196,12 @@ public class RealTimeActivity extends Activity {
         private static final String MESSAGES = "Messages";
         private ConnectivityManager connectivityManager;
         private TextView realTimeUpdateStatusTextView;
-        private TextView realTimeUpdateConnectionStatusTextView;
         private RealTimeUpdateRunnable realTimeUpdateRunnable;
 
         public LoadLineInformation(ConnectivityManager connectivityManager, TextView realTimeUpdateStatusTextView,
-                TextView realTimeUpdateConnectionStatusTextView, RealTimeUpdateRunnable realTimeUpdateRunnable) {
+                RealTimeUpdateRunnable realTimeUpdateRunnable) {
             this.connectivityManager = connectivityManager;
             this.realTimeUpdateStatusTextView = realTimeUpdateStatusTextView;
-            this.realTimeUpdateConnectionStatusTextView = realTimeUpdateConnectionStatusTextView;
             this.realTimeUpdateRunnable = realTimeUpdateRunnable;
 
         }
@@ -223,7 +218,7 @@ public class RealTimeActivity extends Activity {
                 URL url = new URL("http://developer.mbta.com/lib/RTCR/RailLine_" + params[0] + ".json");
                 HttpURLConnection connection = (HttpURLConnection) url.openConnection();
                 connection.setRequestMethod("GET");
-                connection.setConnectTimeout(30000);
+                connection.setConnectTimeout(20000);
                 connection.connect();
 
                 StringBuilder sb = new StringBuilder();
@@ -270,7 +265,7 @@ public class RealTimeActivity extends Activity {
         @Override
         protected void onPostExecute(List<TripStop> result) {
             if (result == null) {
-                realTimeUpdateConnectionStatusTextView.setText("No connection");
+                // realTimeUpdateConnectionStatusTextView.setText("No connection");
             } else {
                 /*
                  * Find out where all trains are.
@@ -283,43 +278,45 @@ public class RealTimeActivity extends Activity {
                     }
                 }
 
-                realTimeUpdateConnectionStatusTextView.setText("");
                 realTimeLineView.render(trainsInMotion);
-                
-//                for (int i = 0; i < adapter.getCount(); ++i) {
-//                    HashMap<String, String> row = (HashMap<String, String>) adapter.getItem(i);
-//                    row.put(ACTUAL_TIME, "");
-//                    row.put(ACTUAL_TIME_COLOR_ID, "");
-//
-//                    for (TripStop tripStop : result) {
-//                        if (tripStop.getStop().equals(row.get(STOP_NAME))) {
-//                            String realTimeInfo = "";
-//                            Flag statusFlag = tripStop.getFlag();
-//                            if (statusFlag == Flag.PRE || statusFlag == Flag.DEL) {
-//                                Integer late = tripStop.getLateness();
-//                                if (late == null) {
-//                                    realTimeInfo = statusFlag.toString();
-//                                } else {
-//                                    LocalTime scheduledTime = Common.TIME_FORMATTER.parseLocalTime(row
-//                                            .get(SCHEDULED_TIME));
-//                                    scheduledTime = scheduledTime.plusSeconds(late);
-//                                    realTimeInfo = ETA + Common.TIME_FORMATTER.print(scheduledTime);
-//
-//                                    if (late >= 180 && late < 300) {
-//                                        row.put(ACTUAL_TIME_COLOR_ID, "" + trainDelayWarningColor);
-//                                    } else if (late >= 300) {
-//                                        row.put(ACTUAL_TIME_COLOR_ID, "" + trainDelayLateColor);
-//                                    }
-//
-//                                }
-//                            } else {
-//                                realTimeInfo = statusFlag.toString();
-//                            }
-//
-//                            row.put(ACTUAL_TIME, realTimeInfo);
-//                        }
-//                    }
-//                }
+
+                // for (int i = 0; i < adapter.getCount(); ++i) {
+                // HashMap<String, String> row = (HashMap<String, String>)
+                // adapter.getItem(i);
+                // row.put(ACTUAL_TIME, "");
+                // row.put(ACTUAL_TIME_COLOR_ID, "");
+                //
+                // for (TripStop tripStop : result) {
+                // if (tripStop.getStop().equals(row.get(STOP_NAME))) {
+                // String realTimeInfo = "";
+                // Flag statusFlag = tripStop.getFlag();
+                // if (statusFlag == Flag.PRE || statusFlag == Flag.DEL) {
+                // Integer late = tripStop.getLateness();
+                // if (late == null) {
+                // realTimeInfo = statusFlag.toString();
+                // } else {
+                // LocalTime scheduledTime =
+                // Common.TIME_FORMATTER.parseLocalTime(row
+                // .get(SCHEDULED_TIME));
+                // scheduledTime = scheduledTime.plusSeconds(late);
+                // realTimeInfo = ETA +
+                // Common.TIME_FORMATTER.print(scheduledTime);
+                //
+                // if (late >= 180 && late < 300) {
+                // row.put(ACTUAL_TIME_COLOR_ID, "" + trainDelayWarningColor);
+                // } else if (late >= 300) {
+                // row.put(ACTUAL_TIME_COLOR_ID, "" + trainDelayLateColor);
+                // }
+                //
+                // }
+                // } else {
+                // realTimeInfo = statusFlag.toString();
+                // }
+                //
+                // row.put(ACTUAL_TIME, realTimeInfo);
+                // }
+                // }
+                // }
 
                 realTimeUpdateStatusTextView.setText(LAST_UPDATE
                         + Common.TIME_FORMATTER_W_SECONDS.print(new LocalTime()));

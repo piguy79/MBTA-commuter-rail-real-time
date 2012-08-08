@@ -124,12 +124,13 @@ public class RealTimeLineView extends View {
                         break;
                     }
                     currentStopSequence++;
-
                 }
-
             }
 
-            float startBranchY = top + height * ((currentStopSequence + 1.0f) / (float) maxStops);
+            float startBranchY = top;
+            if (currentStopSequence != 0) {
+                startBranchY += height * ((currentStopSequence + 1.0f) / (float) maxStops);
+            }
             float endBranchY = startBranchY + (ratioThatIsNotOnTrunk * (height - stopDiff));
 
             drawSection(canvas, 0, startBranchY, halfWidth, endBranchY, stationsPrimary,
@@ -139,7 +140,7 @@ public class RealTimeLineView extends View {
 
             // Draw trunk last to avoid overlapping connectors
             if (stationsTrunk.get(0).stopSequence == 1) {
-                drawSection(canvas, 0, top, halfWidth, top + height * (currentStopSequence / (float) maxStops),
+                drawSection(canvas, 0, top, halfWidth, startBranchY - stopDiff,
                         stationsTrunk.subList(0, currentStopSequence), true, false, stopDiff);
             }
 
@@ -159,10 +160,9 @@ public class RealTimeLineView extends View {
         float lineXEndOffset = left + width * LINE_X_END_OFFSET_RATIO;
 
         if (left == 0) {
-            canvas.drawRect(lineXOffset, top - STOP_RADIUS, lineXEndOffset, top + height + nextStopYDiff + 2
-                    * STOP_RADIUS, linePaint);
+            canvas.drawRect(lineXOffset, top - STOP_RADIUS, lineXEndOffset, bottom + nextStopYDiff - STOP_RADIUS, linePaint);
         } else {
-            canvas.drawRect(lineXOffset, top - STOP_RADIUS, lineXEndOffset, top + height + 2 * STOP_RADIUS, linePaint);
+            canvas.drawRect(lineXOffset, top - STOP_RADIUS, lineXEndOffset, bottom + 2 * STOP_RADIUS, linePaint);
 
             /*
              * Connect this secondary line back to the trunk
