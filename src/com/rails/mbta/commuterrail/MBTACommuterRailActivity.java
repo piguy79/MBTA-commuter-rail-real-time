@@ -86,10 +86,6 @@ public class MBTACommuterRailActivity extends Activity {
                     break;
                 }
             }
-
-            LoadScheduleInformation scheduleLoader = new LoadScheduleInformation(MBTACommuterRailActivity.this,
-                    lineNumber);
-            scheduleLoader.execute("");
         }
     }
 

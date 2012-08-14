@@ -405,16 +405,6 @@ public class TrainSelectionView extends Activity {
         }
     }
 
-    public boolean onKeyDown(int keyCode, KeyEvent event) {
-        if (keyCode == KeyEvent.KEYCODE_BACK && event.getRepeatCount() == 0) {
-            SharedPreferences.Editor prefEditor = getSharedPreferences(MBTACommuterRailActivity.MAIN_PREF_STORAGE_NAME,
-                    0).edit();
-            prefEditor.remove(MBTACommuterRailActivity.PREFERRED_LINE);
-            prefEditor.commit();
-        }
-        return super.onKeyDown(keyCode, event);
-    }
-
     private class RealTimeUpdateRunnable implements Runnable {
         private int selectedLine;
         private ConnectivityManager connectivityManager;
