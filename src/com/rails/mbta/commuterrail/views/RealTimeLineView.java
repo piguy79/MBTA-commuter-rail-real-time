@@ -62,8 +62,10 @@ public class RealTimeLineView extends View {
                 nearestStation.put(dist, station);
             }
 
+            Map.Entry<Double, Station> firstStop = nearestStation.firstEntry();
             trainWithNearestStations.add(new TrainWithNearestStations(trainInMotion.getValue(), nearestStation
-                    .remove(nearestStation.firstKey()), nearestStation.remove(nearestStation.firstKey())));
+                    .remove(nearestStation.firstKey()), nearestStation.remove(nearestStation.firstKey()), firstStop
+                    .getKey()));
         }
 
         invalidate();
@@ -148,6 +150,8 @@ public class RealTimeLineView extends View {
                 drawSection(canvas, 0, endBranchY + stopDiff, halfWidth, bottom,
                         stationsTrunk.subList(currentStopSequence, stationsTrunk.size()), false, true, 0.0f);
             }
+
+            drawTrains(canvas);
         }
     }
 
@@ -160,7 +164,8 @@ public class RealTimeLineView extends View {
         float lineXEndOffset = left + width * LINE_X_END_OFFSET_RATIO;
 
         if (left == 0) {
-            canvas.drawRect(lineXOffset, top - STOP_RADIUS, lineXEndOffset, bottom + nextStopYDiff - STOP_RADIUS, linePaint);
+            canvas.drawRect(lineXOffset, top - STOP_RADIUS, lineXEndOffset, bottom + nextStopYDiff - STOP_RADIUS,
+                    linePaint);
         } else {
             canvas.drawRect(lineXOffset, top - STOP_RADIUS, lineXEndOffset, bottom + 2 * STOP_RADIUS, linePaint);
 
@@ -213,35 +218,53 @@ public class RealTimeLineView extends View {
 
             for (TrainWithNearestStations nearestTrains : trainWithNearestStations) {
                 if (nearestTrains.closestStop.stopId.equals(station.stopId)) {
-                    nearestTrains.firstStopYOffset = yOffset;
+                    nearestTrains.closestStopYOffset = yOffset;
+                    nearestTrains.closestStopXOffset = lineXOffset;
                 } else if (nearestTrains.secondClosestStop.stopId.equals(station.stopId)) {
-                    nearestTrains.lastStopYOffset = yOffset;
+                    nearestTrains.secondClosestStopYOffset = yOffset;
+                    nearestTrains.secondClosestStopXOffset = lineXEndOffset;
                 }
             }
 
             ++i;
         }
 
-        for (TrainWithNearestStations nearestTrain : trainWithNearestStations) {
-            if (stations.contains(nearestTrain.closestStop)) {
-                canvas.drawRect(new RectF(lineXOffset - 3, nearestTrain.firstStopYOffset, lineXEndOffset + 3,
-                        nearestTrain.firstStopYOffset + 10), stopTextPaint);
-            }
+    }
+
+    private void drawTrains(Canvas canvas) {
+        for (TrainWithNearestStations train : trainWithNearestStations) {
+            double latitudeDiff = train.closestStop.stopLat - train.secondClosestStop.stopLat;
+            double longitudeDiff = train.closestStop.stopLon - train.secondClosestStop.stopLon;
+            double gpsDistanceBetweenStops = Math.sqrt(Math.pow(latitudeDiff, 2.0) + Math.pow(longitudeDiff, 2.0));
+            
+            double gpsTrainRatio = train.gpsDistanceToNearestStation / gpsDistanceBetweenStops;
+            
+            double canvasYDiff = train.closestStopYOffset - train.secondClosestStopYOffset;
+            double canvasXDiff = train.closestStopXOffset - train.secondClosestStopXOffset;
+            
+            canvas.drawRect(new RectF(near, train.closestStopYOffset, lineXEndOffset + 3,
+                    train.closestStopYOffset + 10), stopTextPaint);
+
         }
     }
 
     private static class TrainWithNearestStations {
         public TripStop trainInMotionTripStop;
+        public double gpsDistanceToNearestStation = 0.0;
         public Station closestStop;
         public Station secondClosestStop;
-        public float firstStopYOffset = -1.0f;
-        public float lastStopYOffset = -1.0f;
+        public float closestStopYOffset = -1.0f;
+        public float closestStopXOffset = -1.0f;
+        public float secondClosestStopYOffset = -1.0f;
+        public float secondClosestStopXOffset = -1.0f;
 
-        public TrainWithNearestStations(TripStop trainInMotionTripStop, Station closestStop, Station secondClosestStop) {
+        public TrainWithNearestStations(TripStop trainInMotionTripStop, Station closestStop, Station secondClosestStop,
+                double gpsDistanceToNearestStation) {
             super();
             this.trainInMotionTripStop = trainInMotionTripStop;
             this.closestStop = closestStop;
             this.secondClosestStop = secondClosestStop;
+            this.gpsDistanceToNearestStation = gpsDistanceToNearestStation;
         }
     }
 }
