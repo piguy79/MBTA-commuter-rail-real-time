@@ -74,10 +74,6 @@ public class MBTACommuterRailActivity extends Activity {
                     break;
                 }
             }
-
-            LoadScheduleInformation scheduleLoader = new LoadScheduleInformation(MBTACommuterRailActivity.this,
-                    lineNumber);
-            scheduleLoader.execute("");
         }
     }
 
@@ -124,7 +120,7 @@ public class MBTACommuterRailActivity extends Activity {
                     iter.remove();
                     continue;
                 }
-                if (trip.service.startDate.compareTo(now) > 0 || trip.service.endDate.compareTo(now) < 0) {
+                if (trip.service.startDate.compareTo(now) > 0) {
                     iter.remove();
                     continue;
                 }
@@ -138,7 +134,9 @@ public class MBTACommuterRailActivity extends Activity {
             extras.putInt(SELECTED_LINE, selectedLine);
             intent.putExtras(extras);
 
-            progressDialog.dismiss();
+            if (progressDialog.isShowing()) {
+                progressDialog.dismiss();
+            }
 
             activity.startActivity(intent);
         }
