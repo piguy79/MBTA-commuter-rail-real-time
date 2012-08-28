@@ -64,7 +64,7 @@
 
         <com.rails.mbta.commuterrail.views.RealTimeLineView
             android:id="@+id/realTimeLineView1"
-            android:layout_width="180dp"
+            android:layout_width="140dp"
             android:layout_height="fill_parent"
             android:layout_gravity="top" />
 

@@ -222,7 +222,7 @@ public class RealTimeLineView extends View {
                     nearestTrains.closestStopXOffset = lineXOffset;
                 } else if (nearestTrains.secondClosestStop.stopId.equals(station.stopId)) {
                     nearestTrains.secondClosestStopYOffset = yOffset;
-                    nearestTrains.secondClosestStopXOffset = lineXEndOffset;
+                    nearestTrains.secondClosestStopXOffset = lineXOffset;
                 }
             }
 
@@ -236,15 +236,28 @@ public class RealTimeLineView extends View {
             double latitudeDiff = train.closestStop.stopLat - train.secondClosestStop.stopLat;
             double longitudeDiff = train.closestStop.stopLon - train.secondClosestStop.stopLon;
             double gpsDistanceBetweenStops = Math.sqrt(Math.pow(latitudeDiff, 2.0) + Math.pow(longitudeDiff, 2.0));
-            
+
             double gpsTrainRatio = train.gpsDistanceToNearestStation / gpsDistanceBetweenStops;
-            
+
             double canvasYDiff = train.closestStopYOffset - train.secondClosestStopYOffset;
             double canvasXDiff = train.closestStopXOffset - train.secondClosestStopXOffset;
-            
-            canvas.drawRect(new RectF(near, train.closestStopYOffset, lineXEndOffset + 3,
-                    train.closestStopYOffset + 10), stopTextPaint);
 
+            double trainY = 0.0f;
+            double trainX = 0.0f;
+            if (canvasYDiff >= 0) {
+                trainY = train.closestStopYOffset - canvasYDiff * gpsTrainRatio;
+            } else {
+                trainY = train.secondClosestStopYOffset + -1.0 * canvasYDiff * gpsTrainRatio;
+            }
+
+            if (canvasXDiff >= 0) {
+                trainX = train.closestStopXOffset - canvasXDiff * gpsTrainRatio;
+            } else {
+                trainX = train.secondClosestStopXOffset + -1.0 * canvasXDiff * gpsTrainRatio;
+            }
+
+            canvas.drawRect(new RectF((float) trainX, (float) trainY, (float) trainX + 15.0f, (float) trainY + 10.0f),
+                    stopTextPaint);
         }
     }
 
