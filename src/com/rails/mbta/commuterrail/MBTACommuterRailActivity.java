@@ -138,12 +138,15 @@ public class MBTACommuterRailActivity extends Activity {
 
             LocalDate now = new LocalDate();
             int dayOfWeek = Integer.parseInt(Common.TODAY_FORMATTER.print(now));
-            
+
             if (selectedDayOfWeekIndex == 1) {
                 dayOfWeek = 6;
             } else if (selectedDayOfWeekIndex == 2) {
                 dayOfWeek = 7;
+            } else if (dayOfWeek > 5) {
+                dayOfWeek = 1;
             }
+            
             for (ListIterator<Trip> iter = result.trips.listIterator(); iter.hasNext();) {
                 Trip trip = iter.next();
                 if (!trip.service.serviceDays[dayOfWeek]) {
