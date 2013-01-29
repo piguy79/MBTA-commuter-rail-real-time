@@ -7,9 +7,8 @@
     <color name="stop_color">#dddddd</color>
     <color name="stop_text_color">#dddddd</color>
     <color name="border_color">#999999</color>
-
     <string name="line_prompt">Choose a line:</string>
-
+    <string name="dayofweek_prompt">View schedule for:</string>
     <color name="train_delay_warning">#ffd700</color>
     <color name="train_delay_late">#ff0000</color>
     <color name="toolbar_background_color">#aaaaaa</color>

@@ -45,21 +45,30 @@ public class MBTACommuterRailActivity extends Activity {
         commuterRailLinesAdapter.setDropDownViewResource(R.layout.train_selection_item);
         chosenLineSpinner.setAdapter(commuterRailLinesAdapter);
 
-        final CheckBox rememberCheckbox = (CheckBox) findViewById(R.id.rememberMySelectionCheckbox);
+        final Spinner dayOfWeekSpinner = (Spinner) findViewById(R.id.dayOfWeekSpinner);
+        ArrayAdapter<String> dayOfWeekAdapter = new ArrayAdapter<String>(this, R.layout.train_selection_spinner,
+                R.id.chosenLineText, new String[] { "Monday - Friday", "Saturday", "Sunday" });
+        dayOfWeekAdapter.setDropDownViewResource(R.layout.train_selection_item);
+        dayOfWeekSpinner.setAdapter(dayOfWeekAdapter);
+
+        LocalDate now = new LocalDate();
+        int dayOfWeek = Integer.parseInt(Common.TODAY_FORMATTER.print(now));
+        if (dayOfWeek == 6) {
+            dayOfWeekSpinner.setSelection(1);
+        } else if (dayOfWeek == 7) {
+            dayOfWeekSpinner.setSelection(2);
+        }
+
         Button goButton = (Button) findViewById(R.id.goButton);
         goButton.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
                 int lineNumber = ((Line) chosenLineSpinner.getSelectedItem()).getLineNumber();
                 SharedPreferences.Editor prefEditor = getSharedPreferences(MAIN_PREF_STORAGE_NAME, 0).edit();
-                if (rememberCheckbox.isChecked()) {
-                    prefEditor.putInt(PREFERRED_LINE, lineNumber);
-                    prefEditor.commit();
-                } else {
-                    prefEditor.remove(PREFERRED_LINE);
-                    prefEditor.commit();
-                }
+                prefEditor.putInt(PREFERRED_LINE, lineNumber);
+                prefEditor.commit();
+
                 LoadScheduleInformation scheduleLoader = new LoadScheduleInformation(MBTACommuterRailActivity.this,
-                        lineNumber);
+                        lineNumber, dayOfWeekSpinner.getSelectedItemPosition());
                 scheduleLoader.execute("");
             }
         });
@@ -81,10 +90,12 @@ public class MBTACommuterRailActivity extends Activity {
         private ProgressDialog progressDialog;
         private int selectedLine;
         private MBTACommuterRailActivity activity;
+        private int selectedDayOfWeekIndex;
 
-        public LoadScheduleInformation(MBTACommuterRailActivity activity, int selectedLine) {
+        public LoadScheduleInformation(MBTACommuterRailActivity activity, int selectedLine, int selectedDayOfWeek) {
             this.selectedLine = selectedLine;
             this.activity = activity;
+            this.selectedDayOfWeekIndex = selectedDayOfWeek;
         }
 
         @Override
@@ -112,8 +123,18 @@ public class MBTACommuterRailActivity extends Activity {
             /*
              * Limit trips to only those that match today.
              */
+
             LocalDate now = new LocalDate();
             int dayOfWeek = Integer.parseInt(Common.TODAY_FORMATTER.print(now));
+
+            if (selectedDayOfWeekIndex == 1) {
+                dayOfWeek = 6;
+            } else if (selectedDayOfWeekIndex == 2) {
+                dayOfWeek = 7;
+            } else if (dayOfWeek > 5) {
+                dayOfWeek = 1;
+            }
+            
             for (ListIterator<Trip> iter = result.trips.listIterator(); iter.hasNext();) {
                 Trip trip = iter.next();
                 if (!trip.service.serviceDays[dayOfWeek]) {
