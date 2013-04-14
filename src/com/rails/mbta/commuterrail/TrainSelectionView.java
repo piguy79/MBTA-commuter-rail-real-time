@@ -22,7 +22,6 @@ import org.json.JSONObject;
 
 import android.app.Activity;
 import android.app.AlertDialog;
-import android.app.Dialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -34,12 +33,8 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
 import android.text.SpannableString;
-import android.text.style.BackgroundColorSpan;
-import android.text.style.ForegroundColorSpan;
 import android.text.style.StyleSpan;
-import android.text.style.TextAppearanceSpan;
 import android.util.Log;
-import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -384,10 +379,10 @@ public class TrainSelectionView extends Activity {
                 }
             } else {
                 /*
-                 * Select first preferred trip that is greater than 1 hour ago.
+                 * Select first preferred trip that is greater than 75 mins ago.
                  */
                 LocalTime departureTime = trips[i].stopTimes.get(0).departureTime;
-                if (departureTime.isAfter(now.minusMinutes(60)) && preferredLines.contains(trips[i].tripId)) {
+                if (departureTime.isAfter(now.minusMinutes(75)) && preferredLines.contains(trips[i].tripId)) {
                     trainSelectionSpinner.setSelection(i);
                     return;
                 }
@@ -487,19 +482,41 @@ public class TrainSelectionView extends Activity {
                 }
                 reader.close();
 
-                JSONObject messages = new JSONObject(sb.toString());
-                JSONArray allTrains = messages.getJSONArray(MESSAGES);
+                JSONObject json = new JSONObject(sb.toString());
+                JSONArray allTrains = json.getJSONArray(MESSAGES);
                 for (int i = 0; i < allTrains.length(); ++i) {
-                    JSONArray tripStopArray = allTrains.getJSONArray(i);
-                    TripStop tripStop = new TripStop();
-                    for (int j = 0; j < tripStopArray.length(); ++j) {
-                        JSONObject tripStopRow = tripStopArray.getJSONObject(j);
-                        String key = (String) tripStopRow.get(KEY);
-                        String value = (String) tripStopRow.get(VALUE);
+                    // Old format
+                    if (allTrains.optJSONArray(i) != null) {
+                        JSONArray tripStopArray = allTrains.getJSONArray(i);
+                        TripStop tripStop = new TripStop();
+                        for (int j = 0; j < tripStopArray.length(); ++j) {
+                            JSONObject tripStopRow = tripStopArray.getJSONObject(j);
+                            String key = (String) tripStopRow.get(KEY);
+                            String value = (String) tripStopRow.get(VALUE);
 
-                        tripStop.consume(key, value);
+                            tripStop.consume(key, value);
+                        }
+                        allTripStops.add(tripStop);
+                    } else {
+                        // New format
+                        JSONObject jsonTripStop = allTrains.getJSONObject(i);
+                        
+                        TripStop tripStop = new TripStop();
+                        tripStop.consume("Timestamp", jsonTripStop.getString("TimeStamp"));
+                        tripStop.consume("Trip", jsonTripStop.getString("Trip"));
+                        tripStop.consume("Destination", jsonTripStop.getString("Destination"));
+                        tripStop.consume("Stop", jsonTripStop.getString("Stop"));
+                        tripStop.consume("Scheduled", jsonTripStop.getString("Scheduled"));
+                        tripStop.consume("Flag", jsonTripStop.getString("Flag"));
+                        tripStop.consume("Vehicle", jsonTripStop.getString("Vehicle"));
+                        tripStop.consume("Latitude", jsonTripStop.getString("Latitude"));
+                        tripStop.consume("Longitude", jsonTripStop.getString("Longitude"));
+                        tripStop.consume("Heading", jsonTripStop.getString("Heading"));
+                        tripStop.consume("Speed", jsonTripStop.getString("Speed"));
+                        tripStop.consume("Lateness", jsonTripStop.getString("Lateness"));
+                        
+                        allTripStops.add(tripStop);
                     }
-                    allTripStops.add(tripStop);
                 }
 
             } catch (MalformedURLException e) {
